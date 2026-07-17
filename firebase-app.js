@@ -25,7 +25,10 @@ localStorage.setItem = function(key, value) {
         db.collection('users').doc(currentUser.uid).collection('data').doc(key).set({
             value: value,
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-        }).catch(err => console.error("Firebase sync error:", err));
+        }).catch(err => {
+            console.error("Firebase sync error:", err);
+            alert("Firebase Sync Error: " + err.message);
+        });
     }
 };
 
@@ -100,6 +103,7 @@ auth.onAuthStateChanged(async (user) => {
         } catch(err) {
             document.getElementById('loginStatus').innerText = "Error loading data: " + err.message;
             console.error(err);
+            alert("Firebase Load Error: " + err.message);
         }
     } else {
         currentUser = null;
