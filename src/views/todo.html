@@ -1,0 +1,65 @@
+
+            <header class="top-header">
+                <div class="header-title">
+                    <h1>To-Do List</h1>
+                    <p class="subtitle">Manage your daily tasks and goals.</p>
+                </div>
+            </header>
+
+            <section class="todo-section">
+                <div class="routine-grid">
+                    <!-- One-off Tasks Card -->
+                    <div class="card todo-card">
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
+                            <i data-lucide="list-todo" style="color: var(--accent-primary);"></i>
+                            <h2 style="font-size: 1.25rem; font-weight: 600;">One-off Tasks</h2>
+                        </div>
+                        <form id="todoForm" class="todo-form">
+                            <input type="text" id="todoInput" class="form-input" placeholder="What needs to be done?" required>
+                            <button type="submit" class="btn btn-primary"><i data-lucide="plus"></i> Add</button>
+                        </form>
+                        <div style="margin-top: 16px;">
+                            <h3 class="column-title" style="font-size: 1rem; color: var(--text-secondary);">Active</h3>
+                            <ul id="activeTodoList" class="todo-list">
+                                <!-- Active Todos -->
+                            </ul>
+                            
+                            <h3 class="column-title" style="font-size: 1rem; color: var(--text-secondary); margin-top: 24px;">Completed</h3>
+                            <ul id="completedTodoList" class="todo-list">
+                                <!-- Completed Todos -->
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <!-- Routines Card -->
+                    <div class="card todo-card">
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
+                            <i data-lucide="repeat" style="color: var(--accent-primary);"></i>
+                            <h2 style="font-size: 1.25rem; font-weight: 600;">Routines & Habits</h2>
+                        </div>
+                        <form id="routineForm" class="todo-form" style="flex-direction: column;">
+                            <div style="display: flex; gap: 8px; width: 100%;">
+                                <input type="text" id="routineInput" class="form-input" placeholder="New routine (e.g. Drink Water)" required>
+                                <button type="submit" class="btn btn-primary"><i data-lucide="plus"></i> Add</button>
+                            </div>
+                            <div class="routine-days-selector" id="routineDaysSelector">
+                                <div class="routine-day-btn" data-day="0">S</div>
+                                <div class="routine-day-btn" data-day="1">M</div>
+                                <div class="routine-day-btn" data-day="2">T</div>
+                                <div class="routine-day-btn" data-day="3">W</div>
+                                <div class="routine-day-btn" data-day="4">T</div>
+                                <div class="routine-day-btn" data-day="5">F</div>
+                                <div class="routine-day-btn" data-day="6">S</div>
+                            </div>
+                            <small style="color: var(--text-secondary); margin-top: 4px;">Select the days this routine occurs.</small>
+                        </form>
+                        
+                        <div style="margin-top: 16px;">
+                            <ul id="routineList" class="todo-list">
+                                <!-- All Routines -->
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        

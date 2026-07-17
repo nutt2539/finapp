@@ -1,0 +1,53 @@
+<div class="header-title">
+    <h1>Data & Settings</h1>
+    <p class="subtitle">Manage your local data, backup, and restore.</p>
+</div>
+
+<div class="lists-section" style="grid-template-columns: 1fr 1fr; gap: 24px;">
+    <!-- Backup & Restore -->
+    <div class="card list-card">
+        <div class="card-header">
+            <h3 style="display: flex; align-items: center; gap: 8px;">
+                <i data-lucide="database-backup"></i> Backup & Restore
+            </h3>
+        </div>
+        <div class="card-content" style="display: flex; flex-direction: column; gap: 16px;">
+            <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 8px;">
+                Your data is stored securely in this browser. You should regularly export a backup file to prevent data loss.
+            </p>
+            
+            <button class="btn btn-primary" onclick="exportData()" style="display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%;">
+                <i data-lucide="download"></i> Download Backup (.json)
+            </button>
+            
+            <div style="height: 1px; background-color: var(--border-color); margin: 8px 0;"></div>
+            
+            <label for="importDataFile" style="color: var(--text-secondary); font-size: 14px; font-weight: 500;">
+                Restore from Backup:
+            </label>
+            <input type="file" id="importDataFile" class="form-input" accept=".json" style="padding: 8px;">
+            
+            <button class="btn btn-secondary" onclick="importData()" style="display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%;">
+                <i data-lucide="upload"></i> Restore Data
+            </button>
+        </div>
+    </div>
+
+    <!-- Export to CSV -->
+    <div class="card list-card">
+        <div class="card-header">
+            <h3 style="display: flex; align-items: center; gap: 8px;">
+                <i data-lucide="file-spreadsheet"></i> Export to CSV
+            </h3>
+        </div>
+        <div class="card-content" style="display: flex; flex-direction: column; gap: 16px;">
+            <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 8px;">
+                Export your transaction history to a CSV file. You can open this file in Microsoft Excel, Apple Numbers, or Google Sheets.
+            </p>
+            
+            <button class="btn btn-success" onclick="exportTransactionsCSV()" style="display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%;">
+                <i data-lucide="table"></i> Export Transactions (CSV)
+            </button>
+        </div>
+    </div>
+</div>

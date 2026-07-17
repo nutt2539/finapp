@@ -1,0 +1,146 @@
+
+            <header class="top-header">
+                    <div>
+                        <h2>Tax Deduction Planner 🇹🇭</h2>
+                        <p class="text-secondary">Plan your tax deductions and estimate your annual tax payable</p>
+                    </div>
+                </header>
+
+                <div class="planning-layout-grid">
+                    <!-- Left Column: Inputs -->
+                    <div style="display: flex; flex-direction: column; gap: 24px;">
+                        <div class="card">
+                            <h3>Income Sources</h3>
+                            <div id="taxIncomeList" style="margin-top: 16px; display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px;">
+                                <!-- Dynamic Income List -->
+                            </div>
+                            
+                            <form id="taxIncomeForm" style="display: flex; flex-wrap: wrap; gap: 12px; align-items: end; padding-top: 16px; border-top: 1px solid var(--border-color);">
+                                <div style="flex: 2; min-width: 150px;">
+                                    <label class="form-label">Source Name</label>
+                                    <input type="text" id="taxIncName" class="form-input" placeholder="e.g. Hospital A" required>
+                                </div>
+                                <div style="flex: 1; min-width: 120px;">
+                                    <label class="form-label">Type</label>
+                                    <select id="taxIncType" class="form-input" required>
+                                        <option value="40(1)">40(1) Salary</option>
+                                        <option value="40(6)">40(6) Medical</option>
+                                        <option value="40(8)">40(8) Other</option>
+                                    </select>
+                                </div>
+                                <div style="flex: 1; min-width: 120px;">
+                                    <label class="form-label">Monthly Amount (฿)</label>
+                                    <input type="number" id="taxIncAmount" class="form-input" placeholder="0.00" required min="0">
+                                </div>
+                                <div>
+                                    <button type="submit" class="btn btn-primary" style="height: 42px;"><i data-lucide="plus"></i> Add</button>
+                                </div>
+                            </form>
+                        </div>
+
+                        <div class="card">
+                            <h3>Deductions</h3>
+                            <p class="text-secondary" style="font-size: 0.85rem; margin-bottom: 16px;">Standard deduction (50% max 100,000) is automatically applied.</p>
+                            
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                                <div class="form-group">
+                                    <label>Marital Status</label>
+                                    <select id="taxMaritalStatus" class="form-input">
+                                        <option value="single">Single (60,000)</option>
+                                        <option value="married">Married, spouse no income (120,000)</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Parents Care (over 60 yrs)</label>
+                                    <select id="taxParents" class="form-input">
+                                        <option value="0">None (0)</option>
+                                        <option value="1">1 Parent (30,000)</option>
+                                        <option value="2">2 Parents (60,000)</option>
+                                        <option value="3">3 Parents (90,000)</option>
+                                        <option value="4">4 Parents (120,000)</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>GPF (กบข.) (฿)</label>
+                                    <input type="number" id="taxGPF" class="form-input" placeholder="Max 30% or 500k">
+                                </div>
+                                <div class="form-group">
+                                    <label>Life & Health Insurance (฿)</label>
+                                    <input type="number" id="taxInsurance" class="form-input" placeholder="Max 100,000">
+                                </div>
+                                <div class="form-group">
+                                    <label>SSF (฿)</label>
+                                    <input type="number" id="taxSSF" class="form-input" placeholder="Max 30% or 200k">
+                                </div>
+                                <div class="form-group">
+                                    <label>RMF (฿)</label>
+                                    <input type="number" id="taxRMF" class="form-input" placeholder="Max 30% or 500k">
+                                </div>
+                                <div class="form-group">
+                                    <label>Thai ESG (฿)</label>
+                                    <input type="number" id="taxESG" class="form-input" placeholder="Max 300,000">
+                                </div>
+                                <div class="form-group">
+                                    <label>Home Mortgage Interest (฿)</label>
+                                    <input type="number" id="taxMortgage" class="form-input" placeholder="Max 100,000">
+                                </div>
+                                <div class="form-group">
+                                    <label>Donations (฿)</label>
+                                    <input type="number" id="taxDonation" class="form-input" placeholder="Max 10% of net">
+                                </div>
+                            </div>
+                            <button id="btnSaveDeductions" class="btn btn-primary" style="margin-top: 16px; width: 100%;"><i data-lucide="save"></i> Save Deductions</button>
+                        </div>
+                    </div>
+
+                    <!-- Right Column: Summary -->
+                    <div style="position: sticky; top: 24px;">
+                        <div class="card summary-card" style="background: linear-gradient(135deg, rgba(99,102,241,0.1), rgba(168,85,247,0.1)); border: 1px solid rgba(99,102,241,0.2);">
+                            <div class="card-details" style="width: 100%;">
+                                <h3 style="margin-bottom: 16px;">Tax Summary</h3>
+                                
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                                    <span class="text-secondary">Gross Income:</span>
+                                    <span id="taxResGross" style="font-weight: 500;">฿0.00</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                                    <span class="text-secondary">Total Deductions:</span>
+                                    <span id="taxResDeductions" style="font-weight: 500; color: var(--success);">-฿0.00</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid var(--border-color);">
+                                    <span class="text-secondary">Net Taxable Income:</span>
+                                    <span id="taxResNet" style="font-weight: 600;">฿0.00</span>
+                                </div>
+                                
+                                <div style="display: flex; justify-content: space-between; align-items: flex-end;">
+                                    <div>
+                                        <span class="text-secondary" style="font-size: 0.85rem;">Estimated Tax Payable</span>
+                                        <div id="taxResPayable" style="font-size: 2rem; font-weight: 700; color: var(--danger);">฿0.00</div>
+                                    </div>
+                                    <div style="text-align: right;">
+                                        <span class="text-secondary" style="font-size: 0.85rem;">Effective Rate</span>
+                                        <div id="taxResRate" style="font-size: 1.2rem; font-weight: 600;">0%</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="card" style="margin-top: 24px;">
+                            <h3 style="margin-bottom: 16px;">Tax Brackets Breakdown</h3>
+                            <div id="taxBracketsBreakdown" style="font-size: 0.9rem; line-height: 1.6; margin-bottom: 16px;">
+                                <div style="color: var(--text-secondary);">Enter your income to see your tax breakdown.</div>
+                            </div>
+                            <div style="width: 100%; height: 24px;">
+                                <canvas id="taxBracketChart"></canvas>
+                            </div>
+                        </div>
+                        
+                        <div class="card" style="margin-top: 24px;">
+                            <h3 style="margin-bottom: 16px;">Suggestion</h3>
+                            <div id="taxSuggestion" style="font-size: 0.9rem; line-height: 1.6; color: var(--text-secondary);">
+                                Enter your income to see personalized tax suggestions.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+        

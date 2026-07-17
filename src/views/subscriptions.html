@@ -1,0 +1,65 @@
+
+            <header class="top-header">
+                    <div>
+                        <h2>Subscriptions Manager</h2>
+                        <p class="text-secondary">Track your recurring monthly and yearly expenses</p>
+                    </div>
+                </header>
+                
+                <div class="summary-cards" style="margin-bottom: 24px;">
+                    <div class="card summary-card">
+                        <div class="summary-icon"><i data-lucide="calendar"></i></div>
+                        <div class="summary-info">
+                            <span class="summary-label">Total Monthly Burn</span>
+                            <span class="summary-value" id="subMonthlyTotal">฿0.00</span>
+                        </div>
+                    </div>
+                    <div class="card summary-card">
+                        <div class="summary-icon" style="background: rgba(239, 68, 68, 0.1); color: var(--danger);"><i data-lucide="flame"></i></div>
+                        <div class="summary-info">
+                            <span class="summary-label">Total Yearly Burn</span>
+                            <span class="summary-value" id="subYearlyTotal" style="color: var(--danger);">฿0.00</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <form id="subForm" class="todo-form" style="display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 24px; align-items: end;">
+                        <div style="flex: 2; min-width: 150px;">
+                            <label class="form-label">Service Name</label>
+                            <input type="text" id="subName" class="form-input" placeholder="e.g. Netflix, Spotify" required>
+                        </div>
+                        <div style="flex: 1; min-width: 120px;">
+                            <label class="form-label">Cost (฿)</label>
+                            <input type="number" id="subCost" class="form-input" placeholder="0.00" step="0.01" required>
+                        </div>
+                        <div style="flex: 1; min-width: 120px;">
+                            <label class="form-label">Cycle</label>
+                            <select id="subCycle" class="form-input">
+                                <option value="monthly">Monthly</option>
+                                <option value="yearly">Yearly</option>
+                            </select>
+                        </div>
+                        <div>
+                            <button type="submit" class="btn btn-primary" style="height: 42px;"><i data-lucide="plus"></i> Add</button>
+                        </div>
+                    </form>
+
+                    <div style="overflow-x: auto;">
+                        <table class="transaction-table">
+                            <thead>
+                                <tr>
+                                    <th>Service Name</th>
+                                    <th>Cycle</th>
+                                    <th>Cost</th>
+                                    <th>Monthly Eqv.</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="subList">
+                                <!-- Subscriptions -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+        

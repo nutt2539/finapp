@@ -1,0 +1,196 @@
+
+            <header class="top-header">
+                <div class="header-title">
+                    <h1>Dashboard</h1>
+                    <p class="subtitle">Welcome back, here is your financial overview.</p>
+                </div>
+                <div class="header-actions" style="display: flex; gap: 12px; align-items: center;">
+                    <button class="icon-btn" id="headerManageCategoriesBtn" title="Manage Categories" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; background-color: var(--glass-bg); border: 1px solid var(--border-color); border-radius: var(--radius-md);">
+                        <i data-lucide="tags"></i>
+                    </button>
+                    <button class="btn btn-secondary" id="manageFixedIncomeBtn">
+                        <i data-lucide="calendar-plus"></i> Fixed Incomes
+                    </button>
+                    <button class="btn btn-secondary" id="manageFixedBtn">
+                        <i data-lucide="calendar-clock"></i> Fixed Expenses
+                    </button>
+                    <button class="btn btn-primary" id="addTransactionBtn">
+                        <i data-lucide="plus"></i> Add Transaction
+                    </button>
+                </div>
+            </header>
+
+            <!-- Smart Daily Insights -->
+            <div class="card bg-gradient-insight insight-card" style="margin-bottom: 24px; position: relative; overflow: hidden;">
+                <div style="display: flex; gap: 16px; align-items: center; position: relative; z-index: 2;">
+                    <div class="insight-icon" style="background: rgba(255,255,255,0.2); width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: white;">
+                        <i data-lucide="sparkles"></i>
+                    </div>
+                    <div style="flex-grow: 1;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                            <h3 style="color: white; font-size: 16px; margin: 0;">Daily Insights</h3>
+                            <button id="refreshInsightBtn" style="background: none; border: none; color: rgba(255,255,255,0.7); cursor: pointer; display: flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 50%; transition: var(--transition);">
+                                <i data-lucide="refresh-cw" style="width: 16px; height: 16px;"></i>
+                            </button>
+                        </div>
+                        <p id="dailyInsightText" style="color: rgba(255,255,255,0.9); font-size: 14px; margin: 0; line-height: 1.5;">กำลังวิเคราะห์ข้อมูล...</p>
+                    </div>
+                </div>
+                <!-- Decorative background elements -->
+                <div style="position: absolute; right: -20px; top: -20px; width: 100px; height: 100px; background: rgba(255,255,255,0.1); border-radius: 50%; z-index: 1;"></div>
+                <div style="position: absolute; right: 40px; bottom: -30px; width: 60px; height: 60px; background: rgba(255,255,255,0.1); border-radius: 50%; z-index: 1;"></div>
+            </div>
+
+            <!-- Dashboard Tabs & Controls -->
+            <div class="dashboard-controls">
+                <div class="tabs">
+                    <button class="tab-btn active" data-tab="monthly">Monthly View</button>
+                    <button class="tab-btn" data-tab="yearly">Yearly View</button>
+                </div>
+                
+                <div class="period-selector">
+                    <!-- Shown when monthly tab is active -->
+                    <div id="monthlySelectorContainer">
+                        <input type="month" id="monthPicker" class="select-input">
+                    </div>
+                    <!-- Shown when yearly tab is active -->
+                    <div id="yearlySelectorContainer" style="display: none;">
+                        <select id="yearPicker" class="select-input">
+                            <!-- Populated via JS -->
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Summary Cards -->
+            <section class="summary-cards">
+                <!-- Top Row (3) -->
+                <div class="card summary-card bg-gradient-income">
+                    <div class="card-icon income-icon"><i data-lucide="trending-up"></i></div>
+                    <div class="card-details">
+                        <span class="card-label">Total Income (<span class="period-label"></span>)</span>
+                        <h2 class="card-amount" id="totalIncome">฿0.00</h2>
+                    </div>
+                </div>
+                <div class="card summary-card bg-gradient-expense">
+                    <div class="card-icon expense-icon"><i data-lucide="trending-down"></i></div>
+                    <div class="card-details">
+                        <span class="card-label">Total Expenses (<span class="period-label"></span>)</span>
+                        <h2 class="card-amount" id="totalExpense">฿0.00</h2>
+                    </div>
+                </div>
+                <div class="card summary-card bg-gradient-balance">
+                    <div class="card-icon balance-icon"><i data-lucide="dollar-sign"></i></div>
+                    <div class="card-details">
+                        <span class="card-label">Net Balance</span>
+                        <h2 class="card-amount" id="netBalance">฿0.00</h2>
+                    </div>
+                </div>
+                
+                <!-- Bottom Row (2) -->
+                <div class="card summary-card bg-gradient-fixed-income">
+                    <div class="card-icon fixed-icon"><i data-lucide="calendar-plus"></i></div>
+                    <div class="card-details">
+                        <span class="card-label">Fixed Incomes (<span class="period-label"></span>)</span>
+                        <h2 class="card-amount" id="totalFixedIncome">฿0.00</h2>
+                    </div>
+                </div>
+                <div class="card summary-card bg-gradient-fixed-expense">
+                    <div class="card-icon fixed-icon"><i data-lucide="calendar-minus"></i></div>
+                    <div class="card-details">
+                        <span class="card-label">Fixed Expenses (<span class="period-label"></span>)</span>
+                        <h2 class="card-amount" id="totalFixedExpense">฿0.00</h2>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Charts Section -->
+            <section class="charts-section">
+                <div class="card chart-container">
+                    <div class="card-header">
+                        <h3 id="mainChartTitle">Income vs Expenses</h3>
+                    </div>
+                    <div style="position: relative; height: 300px; width: 100%;">
+                        <canvas id="mainChart"></canvas>
+                    </div>
+                </div>
+                <div class="card chart-container">
+                    <div class="card-header">
+                        <h3>Expenses by Category</h3>
+                    </div>
+                    <div style="position: relative; height: 300px; width: 100%;">
+                        <canvas id="categoryChart"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Transactions & Fixed Expenses Section -->
+            <section class="lists-section">
+                <!-- Recent Transactions -->
+                <div class="card list-card">
+                    <div class="card-header">
+                        <h3>Transactions (<span class="period-label"></span>)</h3>
+                        <button class="btn btn-text">View All</button>
+                    </div>
+                    <div class="table-container">
+                        <table class="transaction-table">
+                            <thead>
+                                <tr>
+                                    <th>Transaction</th>
+                                    <th>Category</th>
+                                    <th>Date</th>
+                                    <th>Amount</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="transactionList">
+                                <!-- Transactions will be rendered here dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <!-- Fixed Items Stack -->
+                <div style="display: flex; flex-direction: column; gap: 24px;">
+                    <!-- Active Fixed Incomes -->
+                    <div class="card list-card" style="min-height: 200px;">
+                        <div class="card-header">
+                            <h3>Active Fixed Incomes</h3>
+                        </div>
+                        <div class="table-container">
+                            <table class="transaction-table">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Amount</th>
+                                        <th>Ends In</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="activeFixedIncomesList">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Active Fixed Expenses -->
+                    <div class="card list-card" style="min-height: 200px;">
+                        <div class="card-header">
+                            <h3>Active Fixed Expenses</h3>
+                        </div>
+                        <div class="table-container">
+                            <table class="transaction-table">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Amount</th>
+                                        <th>Ends In</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="activeFixedExpensesList">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        

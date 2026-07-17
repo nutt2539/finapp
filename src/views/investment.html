@@ -1,0 +1,68 @@
+
+            <header class="top-header">
+                <div class="header-title">
+                    <h1>Investment & Compound Interest</h1>
+                    <p class="subtitle">Project your wealth growth over time.</p>
+                </div>
+            </header>
+            
+            <div class="dashboard-grid" style="margin-top: 24px;">
+                <!-- Left: Inputs -->
+                <div style="display: flex; flex-direction: column; gap: 24px;">
+                    <div class="card form-card">
+                        <div class="card-header">
+                            <h3>Investment Parameters</h3>
+                        </div>
+                        <div class="form-group">
+                            <label>Initial Principal (฿)</label>
+                            <input type="number" id="invPrincipal" placeholder="e.g. 100000" value="0">
+                        </div>
+                        <div class="form-group">
+                            <label>Monthly Contribution (฿)</label>
+                            <input type="number" id="invMonthly" placeholder="e.g. 5000">
+                            <small style="color: var(--text-secondary); margin-top: 4px; display: block;">Defaulted to your Safe-to-Save cash flow.</small>
+                        </div>
+                        <div class="form-group">
+                            <label>Expected Annual Return (%)</label>
+                            <input type="number" id="invRate" placeholder="e.g. 7" value="7">
+                        </div>
+                        <div class="form-group">
+                            <label>Investment Duration (Years)</label>
+                            <input type="number" id="invYears" placeholder="e.g. 10" value="10">
+                        </div>
+                        <button class="btn btn-primary" onclick="calculateInvestment()" style="width: 100%; margin-top: 16px;">
+                            <i data-lucide="calculator"></i> Calculate Projection
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Right: Chart and Summary -->
+                <div style="display: flex; flex-direction: column; gap: 24px;">
+                    <!-- Summary Cards -->
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;">
+                        <div class="card summary-card bg-gradient-income" style="flex-direction: column; align-items: flex-start; padding: 16px; min-height: 100px;">
+                            <span class="card-label">Total Principal</span>
+                            <span class="card-amount" id="invTotalPrincipal" style="font-size: 20px;">฿0.00</span>
+                        </div>
+                        <div class="card summary-card bg-gradient-balance" style="flex-direction: column; align-items: flex-start; padding: 16px; background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); min-height: 100px;">
+                            <span class="card-label">Total Interest</span>
+                            <span class="card-amount" id="invTotalInterest" style="font-size: 20px;">฿0.00</span>
+                        </div>
+                        <div class="card summary-card bg-gradient-balance" style="flex-direction: column; align-items: flex-start; padding: 16px; min-height: 100px;">
+                            <span class="card-label">Final Balance</span>
+                            <span class="card-amount" id="invFinalBalance" style="font-size: 20px;">฿0.00</span>
+                        </div>
+                    </div>
+
+                    <!-- Chart -->
+                    <div class="card chart-container" style="flex: 1;">
+                        <div class="card-header">
+                            <h3>Growth Projection</h3>
+                        </div>
+                        <div style="position: relative; height: 350px; width: 100%;">
+                            <canvas id="investmentChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        

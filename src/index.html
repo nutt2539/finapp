@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Finance Dashboard</title>
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Styles -->
+    <link rel="stylesheet" href="style.css">
+    <!-- FullCalendar and iCal.js for ICS feeds -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ical.js/1.5.0/ical.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/icalendar@6.1.15/index.global.min.js"></script>
+    
+    <!-- Firebase Compat SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+</head>
+<body>
+    <!-- Login Overlay -->
+    <div id="loginOverlay" style="position: fixed; inset: 0; background-color: var(--bg-primary); z-index: 9999; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 20px;">
+        <div class="logo" style="font-size: 32px; margin-bottom: 12px;">
+            <i data-lucide="wallet" style="width: 40px; height: 40px;"></i>
+            <span>FinDash Cloud</span>
+        </div>
+        <p style="color: var(--text-secondary); max-width: 300px; text-align: center; margin-bottom: 24px;">Securely sync your financial data across all your devices using Google Firebase.</p>
+        <button class="btn btn-primary" id="btnGoogleSignIn" style="display: flex; align-items: center; gap: 12px; padding: 12px 24px; font-size: 16px;">
+            <svg style="width: 20px; height: 20px;" viewBox="0 0 24 24">
+                <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+            </svg>
+            Sign in with Google
+        </button>
+        <div id="loginStatus" style="color: var(--text-secondary); font-size: 14px; margin-top: 12px; height: 20px;"></div>
+    </div>
+
+    <!-- Firebase Auth & DB Logic script -->
+    <script src="firebase-app.js"></script>
+
+    <div class="app-container" id="mainAppContainer" style="display: none;">
+        <!-- Sidebar / Navigation -->
+        <aside class="sidebar">
+            <div class="logo-container">
+                <div class="logo">
+                    <i data-lucide="wallet"></i>
+                    <span>FinDash</span>
+                </div>
+                <div class="app-version">v2.35 by Tu13u1E+</div>
+            </div>
+            <nav class="nav-menu">
+                <a href="#" class="nav-item active" data-view="view-dashboard"><i data-lucide="layout-dashboard"></i> Dashboard</a>
+                <a href="#" class="nav-item" data-view="view-planning"><i data-lucide="target"></i> Planning</a>
+                <a href="#" class="nav-item" data-view="view-subscriptions"><i data-lucide="credit-card"></i> Subscriptions</a>
+                <a href="#" class="nav-item" data-view="view-tax"><i data-lucide="calculator"></i> Tax Planner</a>
+                <a href="#" class="nav-item" data-view="view-investment"><i data-lucide="trending-up"></i> DCA Plan</a>
+                
+                <div style="height: 1px; background-color: var(--border-color); margin: 8px 16px;"></div>
+                
+                <a href="#" class="nav-item nav-item-with-badge" data-view="view-todo">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <i data-lucide="check-square"></i> To-Do List
+                    </div>
+                    <span id="todoBadge" class="nav-badge" style="display: none;">0</span>
+                </a>
+                <a href="#" class="nav-item" data-view="view-schedule"><i data-lucide="calendar-days"></i> Life Schedule</a>
+                <a href="#" class="nav-item" data-view="view-settings"><i data-lucide="database"></i> Data & Settings</a>
+            </nav>
+            <div class="user-profile" style="justify-content: space-between;">
+                <div style="display: flex; align-items: center; gap: 12px; overflow: hidden;">
+                    <div style="position: relative; cursor: pointer; flex-shrink: 0;" id="avatarContainer" title="Change Profile Picture">
+                        <img src="./kururu_avatar.jpg" alt="Profile" class="avatar" id="userAvatarImg">
+                        <div class="avatar-overlay">
+                            <i data-lucide="camera" style="width: 16px; height: 16px;"></i>
+                        </div>
+                        <input type="file" id="avatarInput" accept="image/*" style="display: none;">
+                    </div>
+                    <div class="user-info" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                        <span class="user-name" style="overflow: hidden; text-overflow: ellipsis;">Nutt Prahuangmas</span>
+                        <span class="user-email" style="overflow: hidden; text-overflow: ellipsis;">General Physician</span>
+                    </div>
+                </div>
+                <button class="icon-btn theme-toggle" id="themeToggleBtn" title="Toggle Theme" style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; background-color: var(--glass-bg); border: 1px solid var(--border-color); border-radius: var(--radius-md); color: var(--text-secondary); cursor: pointer; flex-shrink: 0;">
+                    <i data-lucide="sun"></i>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content - Dashboard -->
+        <main class="main-content view-section active" id="view-dashboard">
+        <!-- INCLUDE views/dashboard.html -->
+    </main>
+
+        <!-- Main Content - Planning -->
+        <main class="main-content view-section" id="view-planning">
+        <!-- INCLUDE views/planning.html -->
+    </main>
+
+        <!-- Main Content - Investment -->
+        <main class="main-content view-section" id="view-investment">
+        <!-- INCLUDE views/investment.html -->
+    </main>
+
+        <!-- Main Content - Schedule -->
+        <main class="main-content view-section" id="view-schedule">
+            <!-- INCLUDE views/schedule.html -->
+        </main>
+
+        <main class="main-content view-section" id="view-settings">
+            <!-- INCLUDE views/settings.html -->
+        </main>
+
+        <!-- To-Do List Section -->
+        <main class="main-content view-section" id="view-todo">
+        <!-- INCLUDE views/todo.html -->
+    </main>
+
+        <!-- Tax Planner View -->
+        <main id="view-tax" class="main-content view-section">
+        <!-- INCLUDE views/tax.html -->
+    </main>
+
+        <!-- Subscriptions View -->
+        <main id="view-subscriptions" class="main-content view-section">
+        <!-- INCLUDE views/subscriptions.html -->
+    </main>
+    </div>
+
+    <!-- Calendar Links Modal -->
+    <div class="modal-overlay" id="calendarLinksModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>Manage Calendar Links</h2>
+                <button class="icon-btn close-modal"><i data-lucide="x"></i></button>
+            </div>
+            <form id="calendarLinksForm">
+                <div class="form-group">
+                    <label>Google Calendar ICS URL</label>
+                    <input type="url" id="googleCalendarUrl" placeholder="https://calendar.google.com/calendar/ical/.../basic.ics">
+                    <small class="helper-text" style="color: var(--text-secondary); display: block; margin-top: 4px; font-size: 12px;">Go to Google Calendar > Settings > Integrate calendar > Secret address in iCal format</small>
+                </div>
+                <div class="form-group">
+                    <label>Apple Calendar ICS URL</label>
+                    <input type="url" id="appleCalendarUrl" placeholder="https://pXX-caldav.icloud.com/published/2/... ">
+                    <small class="helper-text" style="color: var(--text-secondary); display: block; margin-top: 4px; font-size: 12px;">Make your iCloud calendar Public and copy the URL (change webcal:// to https://)</small>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary close-modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Links</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Goal Modal -->
+    <div class="modal-overlay" id="goalModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>Add Future Goal</h2>
+                <button class="icon-btn close-modal"><i data-lucide="x"></i></button>
+            </div>
+            <div class="modal-body">
+                <form id="goalForm">
+                    <div class="form-group">
+                        <label>Plan Type</label>
+                        <div class="radio-group">
+                            <label class="radio-label">
+                                <input type="radio" name="goalType" value="saving" checked id="radioTypeSaving"> Saving Goal
+                            </label>
+                            <label class="radio-label">
+                                <input type="radio" name="goalType" value="installment" id="radioTypeInstallment"> Installment Plan
+                            </label>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="goalName">Goal / Expense Name</label>
+                        <input type="text" id="goalName" required placeholder="e.g. New Car, Citibank Insurance">
+                    </div>
+                    <div class="form-group">
+                        <label for="goalAmount">Target / Principal Amount (฿)</label>
+                        <input type="number" id="goalAmount" required min="1" step="0.01" placeholder="0.00">
+                    </div>
+                    
+                    <!-- Installment Specific Fields -->
+                    <div id="installmentFields" style="display: none;">
+                        <div class="form-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                            <div>
+                                <label for="goalDuration">Duration (Months)</label>
+                                <input type="number" id="goalDuration" min="1" step="1" placeholder="e.g. 3">
+                            </div>
+                            <div>
+                                <label for="goalInterest">Monthly Interest (%)</label>
+                                <input type="number" id="goalInterest" min="0" step="0.01" placeholder="e.g. 0.74">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="goalDate" id="goalDateLabel">Target Date (Month/Year)</label>
+                        <input type="month" id="goalDate" required>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary close-modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Save Goal</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Manage Categories Modal -->
+    <div class="modal-overlay" id="categoryModal">
+        <div class="modal" style="max-width: 500px;">
+            <div class="modal-header">
+                <h2>Manage Categories</h2>
+                <button class="icon-btn close-modal"><i data-lucide="x"></i></button>
+            </div>
+            <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+                <div class="tabs" style="margin-bottom: 20px;">
+                    <button class="tab-btn active" id="tabIncomeCat" style="flex: 1;">Income Categories</button>
+                    <button class="tab-btn" id="tabExpenseCat" style="flex: 1;">Expense Categories</button>
+                </div>
+
+                
+                <form id="addCategoryForm" style="display: flex; gap: 8px; margin-bottom: 24px;">
+                    <input type="text" id="newCategoryName" placeholder="New category name" required style="flex: 1; padding: 10px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--glass-bg); color: var(--text-color);">
+                    <button type="submit" class="btn btn-primary"><i data-lucide="plus"></i> Add</button>
+                </form>
+
+                <div class="table-container" style="border: 1px solid var(--border-color); border-radius: var(--radius-md);">
+                    <table class="transaction-table">
+                        <tbody id="categoryListBody">
+                            <!-- Categories rendered here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Category Prompt (Hidden structure inside modal) -->
+    <div class="modal-overlay" id="editCategoryModal" style="z-index: 1100;">
+        <div class="modal" style="max-width: 400px;">
+            <div class="modal-header">
+                <h2>Rename Category</h2>
+                <button class="icon-btn" onclick="document.getElementById('editCategoryModal').classList.remove('active')"><i data-lucide="x"></i></button>
+            </div>
+            <div class="modal-body">
+                <form id="editCategoryForm">
+                    <input type="hidden" id="editCategoryOldName">
+                    <input type="hidden" id="editCategoryType">
+                    <div class="form-group">
+                        <label>New Name</label>
+                        <input type="text" id="editCategoryNewName" required>
+                        <small style="color: var(--text-secondary); display: block; margin-top: 8px;">All existing transactions with the old name will be automatically updated to this new name to keep your history clean.</small>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" onclick="document.getElementById('editCategoryModal').classList.remove('active')">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Transaction Modal -->
+    <div class="modal-overlay" id="transactionModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>Add Transaction</h2>
+                <button class="icon-btn close-modal"><i data-lucide="x"></i></button>
+            </div>
+            <div class="modal-body">
+                <form id="transactionForm">
+                    <div class="form-group">
+                        <label>Type</label>
+                        <div class="radio-group">
+                            <label class="radio-label">
+                                <input type="radio" name="type" value="income" checked id="radioTxIncome"> Income
+                            </label>
+                            <label class="radio-label">
+                                <input type="radio" name="type" value="expense" id="radioTxExpense"> Expense
+                            </label>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="amount">Amount</label>
+                        <input type="number" id="amount" name="amount" required min="0.01" step="0.01" placeholder="0.00">
+                    </div>
+                    <div class="form-group">
+                        <label for="category">Category</label>
+                        <select id="category" name="category" required>
+                            <!-- Dynamically populated -->
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="date">Date</label>
+                        <input type="date" id="date" name="date" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="note">Note (Optional)</label>
+                        <input type="text" id="note" name="note" placeholder="What was this for?">
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary close-modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Save Transaction</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Manage Fixed Incomes Modal -->
+    <div class="modal-overlay" id="fixedIncomeModal">
+        <div class="modal" style="max-width: 600px;">
+            <div class="modal-header">
+                <h2>Manage Fixed Incomes</h2>
+                <button class="icon-btn close-modal"><i data-lucide="x"></i></button>
+            </div>
+            <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+                <div style="margin-bottom: 24px;">
+                    <h3>Your Recurring Incomes</h3>
+                    <p style="color: var(--text-secondary); font-size: 13px; margin-bottom: 12px;">These are automatically added to your Total Income every month until the specified end date.</p>
+                    <div class="table-container" style="border: 1px solid var(--border-color); border-radius: var(--radius-md);">
+                        <table class="transaction-table">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Category</th>
+                                    <th>Amount</th>
+                                    <th>Ends In</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="allFixedIncomesList">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <hr style="border-color: var(--border-color); margin: 24px 0; opacity: 0.5;">
+
+                <h3>Add New Fixed Income</h3>
+                <form id="fixedIncomeForm" style="margin-top: 16px;">
+                    <div class="form-group">
+                        <label for="fiName">Name / Note</label>
+                        <input type="text" id="fiName" required placeholder="e.g., Monthly Salary, Rent from Condo">
+                    </div>
+                    <div class="form-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                        <div>
+                            <label for="fiAmount">Amount (Monthly)</label>
+                            <input type="number" id="fiAmount" required min="0.01" step="0.01" placeholder="0.00">
+                        </div>
+                        <div>
+                            <label for="fiCategory">Category</label>
+                            <select id="fiCategory" required>
+                                <!-- Dynamically populated -->
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="fiEndDate">End Date (Optional)</label>
+                        <input type="date" id="fiEndDate">
+                        <small style="color: var(--text-secondary); font-size: 12px; display: block; margin-top: 4px;">Leave blank if it's an ongoing income. It will be auto-settled 1 day after this date.</small>
+                    </div>
+                    <div class="form-actions" style="display: flex; gap: 12px; justify-content: flex-end;">
+                        <button type="button" class="btn btn-secondary" id="cancelFiEditBtn" style="display: none;">Cancel Edit</button>
+                        <button type="submit" class="btn btn-primary" id="fiSubmitBtn"><i data-lucide="plus"></i> Add Fixed Income</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Manage Fixed Expenses Modal -->
+    <div class="modal-overlay" id="fixedExpenseModal">
+        <div class="modal" style="max-width: 600px;">
+            <div class="modal-header">
+                <h2>Manage Fixed Expenses</h2>
+                <button class="icon-btn close-modal"><i data-lucide="x"></i></button>
+            </div>
+            <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+                <div style="margin-bottom: 24px;">
+                    <h3>Your Recurring Expenses</h3>
+                    <p style="color: var(--text-secondary); font-size: 13px; margin-bottom: 12px;">These are automatically added to your Total Expenses every month until the specified end date.</p>
+                    <div class="table-container" style="border: 1px solid var(--border-color); border-radius: var(--radius-md);">
+                        <table class="transaction-table">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Category</th>
+                                    <th>Amount</th>
+                                    <th>Ends In</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="allFixedExpensesList">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <hr style="border-color: var(--border-color); margin: 24px 0; opacity: 0.5;">
+
+                <h3>Add New Fixed Expense</h3>
+                <form id="fixedExpenseForm" style="margin-top: 16px;">
+                    <div class="form-group">
+                        <label for="feName">Name / Note</label>
+                        <input type="text" id="feName" required placeholder="e.g., Car Installment, Netflix">
+                    </div>
+                    <div class="form-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                        <div>
+                            <label for="feAmount">Amount (Monthly)</label>
+                            <input type="number" id="feAmount" required min="0.01" step="0.01" placeholder="0.00">
+                        </div>
+                        <div>
+                            <label for="feCategory">Category</label>
+                            <select id="feCategory" required>
+                                <!-- Dynamically populated -->
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="feEndDate">End Date (Optional)</label>
+                        <input type="date" id="feEndDate">
+                        <small style="color: var(--text-secondary); font-size: 12px; display: block; margin-top: 4px;">Leave blank if it's an ongoing expense (e.g., Rent, Internet). It will be auto-settled 1 day after this date.</small>
+                    </div>
+                    <div class="form-actions" style="display: flex; gap: 12px; justify-content: flex-end;">
+                        <button type="button" class="btn btn-secondary" id="cancelFeEditBtn" style="display: none;">Cancel Edit</button>
+                        <button type="submit" class="btn btn-primary" id="feSubmitBtn"><i data-lucide="plus"></i> Add Fixed Expense</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <!-- Add Expected Income Modal -->
+    <div class="modal-overlay" id="expectedIncomeModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 id="expectedIncomeModalTitle">Add Expected Income</h3>
+                <button class="icon-btn close-modal"><i data-lucide="x"></i></button>
+            </div>
+            <form id="expectedIncomeForm">
+                <div class="form-group">
+                    <label>Source Name</label>
+                    <input type="text" id="expectedIncomeName" class="form-control" required placeholder="e.g. Freelance Job">
+                </div>
+                <div class="form-group">
+                    <label>Amount (฿)</label>
+                    <input type="number" id="expectedIncomeAmount" class="form-control" required min="0" step="0.01">
+                </div>
+                <div class="form-group">
+                    <label>Expected Date (Month/Year)</label>
+                    <input type="month" id="expectedIncomeDate" class="form-control" required>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary close-modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Income</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Net Worth Modal -->
+    <div class="modal-overlay" id="netWorthModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>Edit Net Worth Details</h2>
+                <button class="icon-btn close-modal"><i data-lucide="x"></i></button>
+            </div>
+            <div class="modal-body">
+                <form id="netWorthForm">
+                    <div class="form-group">
+                        <label>Other Assets (฿)</label>
+                        <input type="number" id="nwAssets" step="0.01" placeholder="e.g. Property, Cars">
+                    </div>
+                    <div class="form-group">
+                        <label>Debts (฿)</label>
+                        <input type="number" id="nwDebts" step="0.01" placeholder="e.g. Mortgage, Loans">
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary close-modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Emergency Fund Modal -->
+    <div class="modal-overlay" id="emergencyModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>Edit Emergency Fund</h2>
+                <button class="icon-btn close-modal"><i data-lucide="x"></i></button>
+            </div>
+            <div class="modal-body">
+                <form id="emergencyForm">
+                    <div class="form-group">
+                        <label>Target Months</label>
+                        <input type="number" id="emMonths" value="6" min="1" max="24">
+                        <small style="color: var(--text-secondary); display: block; margin-top: 4px;">Recommended: 6 months of average expenses</small>
+                    </div>
+                    <div class="form-group">
+                        <label>Currently Saved (฿)</label>
+                        <input type="number" id="emSaved" step="0.01" placeholder="0.00">
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary close-modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>
