@@ -227,6 +227,11 @@ body {
     align-items: flex-end;
     margin-bottom: 24px;
 }
+.header-actions {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
 
 .header-title h1 {
     font-size: 32px;
@@ -780,17 +785,54 @@ body {
         align-items: center;
         border-right: none;
         border-bottom: 1px solid var(--border-color);
-        position: relative;
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        overflow: visible; /* Fix clipping of nav-menu */
     }
     
-    .logo-container { margin-bottom: 0; display: flex; align-items: baseline; gap: 8px; }
+    .logo-container { margin-bottom: 0; display: flex; align-items: baseline; gap: 8px; cursor: pointer; flex-grow: 1; }
     .logo { margin-bottom: 0; }
     .app-version { padding-left: 0; font-size: 10px; }
-    .nav-menu { display: none; } /* Hide on mobile for simplicity */
+    .nav-menu { 
+        display: none !important; 
+        position: absolute; 
+        top: 100%; 
+        left: 0; 
+        right: 0; 
+        background: var(--bg-secondary); 
+        padding: 16px; 
+        border-bottom: 1px solid var(--border-color); 
+        z-index: 1000;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+    }
+    .nav-menu.mobile-open {
+        display: flex !important;
+        flex-direction: column;
+    }
     .user-profile { padding-top: 0; border-top: none; }
     
     .summary-cards {
         grid-template-columns: 1fr;
+    }
+    
+    .top-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 16px;
+    }
+    .header-actions {
+        width: 100%;
+        flex-wrap: wrap;
+        justify-content: flex-start;
+    }
+    .header-actions .btn {
+        flex: 1;
+        justify-content: center;
+        padding: 10px;
+        font-size: 13px;
+        white-space: nowrap;
+        min-width: 120px;
     }
     
     .main-content {

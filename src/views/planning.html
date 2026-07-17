@@ -40,45 +40,6 @@
                 </div>
             </section>
             
-            <section class="summary-cards" style="margin-top: 24px;">
-                <!-- Net Worth Card -->
-                <div class="card" style="display: flex; flex-direction: column; justify-content: center;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                        <h3 style="display: flex; align-items: center; gap: 8px;"><i data-lucide="gem" style="color: var(--primary);"></i> Net Worth</h3>
-                        <button class="icon-btn" onclick="openNetWorthModal()" title="Edit Net Worth"><i data-lucide="edit-3"></i></button>
-                    </div>
-                    <div style="font-size: 2rem; font-weight: 700; color: var(--text-primary); margin-bottom: 16px;" id="netWorthTotal">฿0.00</div>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 0.85rem;">
-                        <div>
-                            <div style="color: var(--text-secondary);">Assets</div>
-                            <div style="font-weight: 600; color: var(--success);" id="netWorthAssets">฿0.00</div>
-                        </div>
-                        <div>
-                            <div style="color: var(--text-secondary);">Debts</div>
-                            <div style="font-weight: 600; color: var(--danger);" id="netWorthDebts">฿0.00</div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Emergency Fund Card -->
-                <div class="card" style="display: flex; flex-direction: column; justify-content: center;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                        <h3 style="display: flex; align-items: center; gap: 8px;"><i data-lucide="shield-check" style="color: var(--success);"></i> Emergency Fund</h3>
-                        <button class="icon-btn" onclick="openEmergencyModal()" title="Edit Emergency Fund"><i data-lucide="edit-3"></i></button>
-                    </div>
-                    <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 8px;">
-                        <div>
-                            <div style="font-size: 1.5rem; font-weight: 700;" id="emFundCurrent">฿0.00</div>
-                            <div style="font-size: 0.85rem; color: var(--text-secondary);">Saved (of <span id="emFundTarget">฿0.00</span> target)</div>
-                        </div>
-                        <div style="font-size: 1.25rem; font-weight: 700; color: var(--primary);" id="emFundPercent">0%</div>
-                    </div>
-                    <div class="progress-bar">
-                        <div class="progress-fill" id="emFundProgressBar" style="width: 0%; background: var(--success);"></div>
-                    </div>
-                    <div style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 8px;" id="emFundStatus">Target: 6 months of average expenses</div>
-                </div>
-            </section>
 
             <!-- AI Financial Analysis & Planning Grid -->
             <div class="planning-layout-grid" style="margin-top: 24px;">

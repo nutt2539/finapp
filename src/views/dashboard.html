@@ -4,7 +4,7 @@
                     <h1>Dashboard</h1>
                     <p class="subtitle">Welcome back, here is your financial overview.</p>
                 </div>
-                <div class="header-actions" style="display: flex; gap: 12px; align-items: center;">
+                <div class="header-actions">
                     <button class="icon-btn" id="headerManageCategoriesBtn" title="Manage Categories" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; background-color: var(--glass-bg); border: 1px solid var(--border-color); border-radius: var(--radius-md);">
                         <i data-lucide="tags"></i>
                     </button>
@@ -21,24 +21,37 @@
             </header>
 
             <!-- Smart Daily Insights -->
-            <div class="card bg-gradient-insight insight-card" style="margin-bottom: 24px; position: relative; overflow: hidden;">
-                <div style="display: flex; gap: 16px; align-items: center; position: relative; z-index: 2;">
-                    <div class="insight-icon" style="background: rgba(255,255,255,0.2); width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: white;">
-                        <i data-lucide="sparkles"></i>
-                    </div>
-                    <div style="flex-grow: 1;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                            <h3 style="color: white; font-size: 16px; margin: 0;">Daily Insights</h3>
-                            <button id="refreshInsightBtn" style="background: none; border: none; color: rgba(255,255,255,0.7); cursor: pointer; display: flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 50%; transition: var(--transition);">
-                                <i data-lucide="refresh-cw" style="width: 16px; height: 16px;"></i>
-                            </button>
+            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 24px;">
+                <!-- Smart Daily Insights -->
+                <div class="card bg-gradient-insight insight-card" style="margin-bottom: 0; position: relative; overflow: hidden; height: 100%;">
+                    <div style="display: flex; gap: 16px; align-items: center; position: relative; z-index: 2;">
+                        <div class="insight-icon" style="background: rgba(255,255,255,0.2); width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: white;">
+                            <i data-lucide="sparkles"></i>
                         </div>
-                        <p id="dailyInsightText" style="color: rgba(255,255,255,0.9); font-size: 14px; margin: 0; line-height: 1.5;">กำลังวิเคราะห์ข้อมูล...</p>
+                        <div style="flex-grow: 1;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                                <h3 style="color: white; font-size: 16px; margin: 0;">Daily Insights</h3>
+                                <button id="refreshInsightBtn" style="background: none; border: none; color: rgba(255,255,255,0.7); cursor: pointer; display: flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 50%; transition: var(--transition);">
+                                    <i data-lucide="refresh-cw" style="width: 16px; height: 16px;"></i>
+                                </button>
+                            </div>
+                            <p id="dailyInsightText" style="color: rgba(255,255,255,0.9); font-size: 14px; margin: 0; line-height: 1.5;">กำลังวิเคราะห์ข้อมูล...</p>
+                        </div>
                     </div>
+                    <!-- Decorative background elements -->
+                    <div style="position: absolute; right: -20px; top: -20px; width: 100px; height: 100px; background: rgba(255,255,255,0.1); border-radius: 50%; z-index: 1;"></div>
+                    <div style="position: absolute; right: 40px; bottom: -30px; width: 60px; height: 60px; background: rgba(255,255,255,0.1); border-radius: 50%; z-index: 1;"></div>
                 </div>
-                <!-- Decorative background elements -->
-                <div style="position: absolute; right: -20px; top: -20px; width: 100px; height: 100px; background: rgba(255,255,255,0.1); border-radius: 50%; z-index: 1;"></div>
-                <div style="position: absolute; right: 40px; bottom: -30px; width: 60px; height: 60px; background: rgba(255,255,255,0.1); border-radius: 50%; z-index: 1;"></div>
+
+                <!-- Weather Widget -->
+                <div class="card weather-card" style="background: linear-gradient(135deg, #74ebd5 0%, #9face6 100%); color: white; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; height: 100%; border-radius: var(--radius-lg); padding: 16px; margin-bottom: 0;">
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
+                        <div id="weatherIcon" style="font-size: 2rem;"><i data-lucide="cloud"></i></div>
+                        <div id="weatherTemp" style="font-size: 1.8rem; font-weight: 700;">--°C</div>
+                    </div>
+                    <div id="weatherDesc" style="font-size: 0.95rem; font-weight: 500; margin-top: 4px;">กำลังโหลดอากาศ...</div>
+                    <div id="weatherLocation" style="font-size: 0.8rem; opacity: 0.8; margin-top: 4px;">รอสักครู่</div>
+                </div>
             </div>
 
             <!-- Dashboard Tabs & Controls -->

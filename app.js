@@ -2812,3 +2812,72 @@ function exportTransactionsCSV() {
     link.setAttribute('download', 'transactions.csv');
     link.click();
 }
+
+// --- Weather Widget Logic ---
+async function loadWeather() {
+    const tempEl = document.getElementById('weatherTemp');
+    const descEl = document.getElementById('weatherDesc');
+    const locEl = document.getElementById('weatherLocation');
+    const iconEl = document.getElementById('weatherIcon');
+    
+    if(!tempEl) return;
+    
+    // Default to Bangkok
+    let lat = 13.75;
+    let lon = 100.5167;
+    locEl.innerText = "กรุงเทพมหานคร";
+    
+    try {
+        const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code`);
+        const data = await res.json();
+        
+        const temp = data.current.temperature_2m;
+        const code = data.current.weather_code;
+        
+        tempEl.innerText = `${Math.round(temp)}°C`;
+        
+        // Map WMO weather codes to descriptions and lucide icons
+        let desc = "Clear";
+        let icon = "sun";
+        
+        if (code === 0) { desc = "ท้องฟ้าแจ่มใส"; icon = "sun"; }
+        else if (code >= 1 && code <= 3) { desc = "มีเมฆบางส่วน"; icon = "cloud-sun"; }
+        else if (code >= 45 && code <= 48) { desc = "มีหมอก"; icon = "cloud-fog"; }
+        else if (code >= 51 && code <= 67) { desc = "ฝนตก"; icon = "cloud-rain"; }
+        else if (code >= 71 && code <= 77) { desc = "หิมะตก"; icon = "snowflake"; }
+        else if (code >= 80 && code <= 82) { desc = "ฝนตกหนัก"; icon = "cloud-rain"; }
+        else if (code >= 95 && code <= 99) { desc = "พายุฝนฟ้าคะนอง"; icon = "cloud-lightning"; }
+        else { desc = "มีเมฆมาก"; icon = "cloud"; }
+        
+        descEl.innerText = desc;
+        iconEl.innerHTML = `<i data-lucide="${icon}"></i>`;
+        
+        if (window.lucide) {
+            window.lucide.createIcons();
+        }
+    } catch (e) {
+        console.error("Weather load failed", e);
+        descEl.innerText = "โหลดไม่สำเร็จ";
+    }
+}
+loadWeather();
+
+// --- Mobile Menu Toggle ---
+const logoContainer = document.querySelector('.logo-container');
+const navMenu = document.querySelector('.nav-menu');
+if (logoContainer && navMenu) {
+    logoContainer.addEventListener('click', () => {
+        if (window.innerWidth <= 768) {
+            navMenu.classList.toggle('mobile-open');
+        }
+    });
+    
+    const navItems = document.querySelectorAll('.nav-item');
+    navItems.forEach(item => {
+        item.addEventListener('click', () => {
+            if (window.innerWidth <= 768) {
+                navMenu.classList.remove('mobile-open');
+            }
+        });
+    });
+}
