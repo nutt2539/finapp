@@ -92,7 +92,7 @@ auth.onAuthStateChanged(async (user) => {
             // Inject app.js if not already loaded
             if (!isAppLoaded) {
                 const script = document.createElement('script');
-                script.src = 'app.js';
+                script.src = 'app.js?v=2';
                 document.body.appendChild(script);
                 isAppLoaded = true;
             } else {
