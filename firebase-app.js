@@ -51,6 +51,15 @@ document.getElementById('btnGoogleSignIn').addEventListener('click', () => {
 // Auth State Observer
 auth.onAuthStateChanged(async (user) => {
     if (user) {
+        // Restrict access to a specific email
+        const allowedEmails = ["tu13u1e@gmail.com"];
+        if (!allowedEmails.includes(user.email)) {
+            auth.signOut();
+            document.getElementById('loginStatus').innerText = "Access Denied: This email is not authorized.";
+            alert("คุณไม่ได้รับอนุญาตให้ใช้งานแอปพลิเคชันนี้ (Access Denied)");
+            return;
+        }
+
         currentUser = user;
         document.getElementById('loginStatus').innerText = "Loading your data securely...";
         
