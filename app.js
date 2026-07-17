@@ -2756,8 +2756,9 @@ function importData() {
                 for (let key in data) {
                     localStorage.setItem(key, data[key]);
                 }
-                alert('Data restored successfully! The page will now reload.');
-                window.location.reload();
+                alert('Data restored successfully! The page will reload shortly to sync to cloud.');
+                // Delay reload to allow Firebase network requests to complete
+                setTimeout(() => window.location.reload(), 2000);
             }
         } catch (error) {
             alert('Error reading the backup file. Ensure it is a valid JSON file.');
