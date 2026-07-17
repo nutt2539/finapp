@@ -84,15 +84,16 @@ const defaultExpenseCategories = ['Installment', 'Subscription', 'Utilities', 'T
 let incomeCategories = JSON.parse(localStorage.getItem(INCOME_CAT_KEY)) || [...defaultIncomeCategories];
 let expenseCategories = JSON.parse(localStorage.getItem(EXPENSE_CAT_KEY)) || [...defaultExpenseCategories];
 
-function saveTransactions() { localStorage.setItem(STORAGE_KEY, JSON.stringify(transactions)); }
-function saveFixedExpenses() { localStorage.setItem(FIXED_STORAGE_KEY, JSON.stringify(fixedExpenses)); }
-function saveCompletedFixedExpenses() { localStorage.setItem(COMPLETED_FIXED_STORAGE_KEY, JSON.stringify(completedFixedExpenses)); }
-function saveFixedIncomes() { localStorage.setItem(FIXED_INCOME_STORAGE_KEY, JSON.stringify(fixedIncomes)); }
-function saveCompletedFixedIncomes() { localStorage.setItem(COMPLETED_FIXED_INCOME_STORAGE_KEY, JSON.stringify(completedFixedIncomes)); }
+function saveTransactions() { localStorage.setItem(STORAGE_KEY, JSON.stringify(transactions)); if (window.syncDataToCloud) window.syncDataToCloud(); }
+function saveFixedExpenses() { localStorage.setItem(FIXED_STORAGE_KEY, JSON.stringify(fixedExpenses)); if (window.syncDataToCloud) window.syncDataToCloud(); }
+function saveCompletedFixedExpenses() { localStorage.setItem(COMPLETED_FIXED_STORAGE_KEY, JSON.stringify(completedFixedExpenses)); if (window.syncDataToCloud) window.syncDataToCloud(); }
+function saveFixedIncomes() { localStorage.setItem(FIXED_INCOME_STORAGE_KEY, JSON.stringify(fixedIncomes)); if (window.syncDataToCloud) window.syncDataToCloud(); }
+function saveCompletedFixedIncomes() { localStorage.setItem(COMPLETED_FIXED_INCOME_STORAGE_KEY, JSON.stringify(completedFixedIncomes)); if (window.syncDataToCloud) window.syncDataToCloud(); }
 
 function saveCategories() {
     localStorage.setItem(INCOME_CAT_KEY, JSON.stringify(incomeCategories));
     localStorage.setItem(EXPENSE_CAT_KEY, JSON.stringify(expenseCategories));
+    if (window.syncDataToCloud) window.syncDataToCloud();
 }
 
 const GOALS_STORAGE_KEY = 'finance_dashboard_goals';
@@ -2756,7 +2757,15 @@ function importData() {
                 for (let key in data) {
                     localStorage.setItem(key, data[key]);
                 }
-                alert('Data restored successfully! (Please wait a few seconds for it to sync to the cloud, then refresh the page to see changes)');
+                if (window.syncDataToCloud) {
+                    window.syncDataToCloud().then((success) => {
+                        if (success) {
+                            alert('Data restored and synced to cloud successfully!');
+                        }
+                    });
+                } else {
+                    alert('Data restored successfully!');
+                }
             }
         } catch (error) {
             alert('Error reading the backup file. Ensure it is a valid JSON file.');

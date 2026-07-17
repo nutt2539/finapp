@@ -16,29 +16,27 @@ const db = firebase.firestore();
 let currentUser = null;
 let isAppLoaded = false;
 
-// Override localStorage.setItem to also sync to Firestore
-const originalSetItem = localStorage.setItem.bind(localStorage);
-
-localStorage.setItem = function(key, value) {
-    originalSetItem(key, value);
-    if (currentUser) {
-        db.collection('users').doc(currentUser.uid).collection('data').doc(key).set({
-            value: value,
-            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-        }).catch(err => {
-            console.error("Firebase sync error:", err);
-            alert("Firebase Sync Error: " + err.message);
-        });
-    }
-};
-
-// Override localStorage.removeItem
-const originalRemoveItem = localStorage.removeItem.bind(localStorage);
-localStorage.removeItem = function(key) {
-    originalRemoveItem(key);
-    if (currentUser) {
-        db.collection('users').doc(currentUser.uid).collection('data').doc(key).delete()
-          .catch(err => console.error("Firebase sync error:", err));
+// Explicit sync function
+window.syncDataToCloud = async function() {
+    if (!currentUser) return false;
+    try {
+        const promises = [];
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            const val = localStorage.getItem(key);
+            if (val && key.startsWith('finance_')) {
+                promises.push(db.collection('users').doc(currentUser.uid).collection('data').doc(key).set({
+                    value: val,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                }));
+            }
+        }
+        await Promise.all(promises);
+        return true;
+    } catch(err) {
+        console.error("Firebase sync error:", err);
+        alert("Firebase Sync Error: " + err.message);
+        return false;
     }
 };
 
@@ -74,12 +72,13 @@ auth.onAuthStateChanged(async (user) => {
                 }
                 if (migrated) {
                     console.log("Migrated local data to Firestore!");
+                    if (window.syncDataToCloud) window.syncDataToCloud();
                 }
             } else {
                 // Restore from Firestore to localStorage silently
                 snapshot.forEach(doc => {
                     if (doc.data().value) {
-                        originalSetItem(doc.id, doc.data().value);
+                        localStorage.setItem(doc.id, doc.data().value);
                     }
                 });
                 console.log("Data loaded from Firestore");
