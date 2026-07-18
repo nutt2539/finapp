@@ -57,8 +57,8 @@ window.updateAutosaveUI = function(status = 'saved', showToastPopup = false) {
     }
 };
 
-const originalSetItem = localStorage.setItem;
-localStorage.setItem = function(key, value) {
+const originalSetItem = Storage.prototype.setItem;
+Storage.prototype.setItem = function(key, value) {
     try {
         originalSetItem.apply(this, arguments);
     } catch(err) {
