@@ -2331,6 +2331,20 @@ function calculateCurrentInvestments() {
     const principal = parseFloat(document.getElementById('invPrincipal')?.value) || 0;
     return principal;
 }
+function calculateMonthlyAverages() {
+    let totalExpense = 0;
+    let expenseMonths = new Set();
+    transactions.forEach(t => {
+        if(t.type === 'expense') {
+            totalExpense += t.amount;
+            const d = new Date(t.date);
+            expenseMonths.add(`${d.getFullYear()}-${d.getMonth()}`);
+        }
+    });
+    return {
+        avgExpense: expenseMonths.size > 0 ? totalExpense / expenseMonths.size : 0
+    };
+}
 
 function renderFinancialHealth() {
     // Net Worth
