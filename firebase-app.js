@@ -69,6 +69,10 @@ window.syncDataToCloud = async function(specificKey = null, specificValue = null
     } catch (e) {
         if (e.message === "FIREBASE_TIMEOUT") {
             alert("❌ สัญญาณอินเทอร์เน็ตมีปัญหา หรือ Firebase ไม่ตอบสนอง (Timeout)! ข้อมูลยังไม่ถูกเซฟลง Cloud กรุณาเช็คว่าสร้าง Database ใน Firebase หรือยังครับ");
+        } else if (e.message && e.message.includes('Missing or insufficient permissions')) {
+            alert("🚨 Firebase ถูกบล็อก! คุณต้องไปแก้ Security Rules ในแท็บ Rules ให้เป็น true ก่อน ข้อมูลถึงจะเซฟได้ครับ");
+        } else {
+            alert("⚠️ เกิดข้อผิดพลาดในการเซฟลง Cloud: " + e.message);
         }
         console.error("Error syncing to cloud: ", e);
         if (window.updateAutosaveUI) window.updateAutosaveUI('error', showToast);
