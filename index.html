@@ -8,6 +8,19 @@
     <meta http-equiv="Expires" content="0">
     <title>Finance Dashboard</title>
     <!-- Fonts -->
+    <!-- DEBUG GLOBAL ERROR HANDLER -->
+    <script>
+        window.onerror = function(msg, url, line) {
+            alert("⚠️ JS Error: " + msg + "\nLine: " + line);
+        };
+        window.onunhandledrejection = function(event) {
+            if (event.reason && event.reason.message && event.reason.message.includes('Missing or insufficient permissions')) {
+                alert("❌ Firebase Error: คุณยังไม่ได้ตั้งค่า Security Rules ใน Firebase (Permission Denied) ข้อมูลจึงไม่ถูกเซฟลง Cloud ครับ!");
+            } else {
+                alert("⚠️ Promise Error: " + (event.reason ? (event.reason.message || event.reason) : "Unknown Error"));
+            }
+        };
+    </script>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
