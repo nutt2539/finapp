@@ -13,11 +13,21 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 
+// Enable offline persistence to prevent data loss on immediate refresh
+db.enablePersistence()
+  .catch(function(err) {
+      if (err.code == 'failed-precondition') {
+          console.warn("Multiple tabs open, offline persistence disabled");
+      } else if (err.code == 'unimplemented') {
+          console.warn("Offline persistence not supported in this browser");
+      }
+  });
+
 let currentUser = null;
 let isAppLoaded = false;
 
 window.isSavingToCloud = false;
-window.syncDataToCloud = async function(specificKey = null, specificValue = null) {
+window.syncDataToCloud = async function(specificKey = null, specificValue = null, showToast = false) {
     if (!currentUser) return false;
     window.isSavingToCloud = true;
     try {
@@ -46,13 +56,13 @@ window.syncDataToCloud = async function(specificKey = null, specificValue = null
         }
         
         // Update Autosave UI
-        if (window.updateAutosaveUI) window.updateAutosaveUI();
+        if (window.updateAutosaveUI) window.updateAutosaveUI('saved', showToast);
         
         window.isSavingToCloud = false;
         return true;
     } catch(err) {
         console.error("Firebase sync error:", err);
-        if (window.updateAutosaveUI) window.updateAutosaveUI('error');
+        if (window.updateAutosaveUI) window.updateAutosaveUI('error', showToast);
         window.isSavingToCloud = false;
         return false;
     }
@@ -139,9 +149,9 @@ auth.onAuthStateChanged(async (user) => {
                     // Inject app.js if not already loaded
                     if (!isAppLoaded) {
                         const script = document.createElement('script');
-                        script.src = 'app.js?v=3';
+                        script.src = 'app.js?v=7';
                         script.onload = () => {
-                            if (window.updateAutosaveUI) window.updateAutosaveUI('saved');
+                            if (window.updateAutosaveUI) window.updateAutosaveUI('saved', false);
                         };
                         document.body.appendChild(script);
                         isAppLoaded = true;

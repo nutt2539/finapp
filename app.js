@@ -1,5 +1,33 @@
 // --- LocalStorage Cloud Sync Wrapper ---
-window.updateAutosaveUI = function(status = 'saved') {
+window.showToast = function(message, type = 'success') {
+    let container = document.getElementById('toast-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'toast-container';
+        document.body.appendChild(container);
+    }
+    
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    toast.innerHTML = `
+        <i data-lucide="${type === 'success' ? 'check-circle' : 'alert-circle'}"></i>
+        <span>${message}</span>
+    `;
+    
+    container.appendChild(toast);
+    lucide.createIcons({ root: toast });
+    
+    // Animate in
+    setTimeout(() => toast.classList.add('show'), 10);
+    
+    // Remove after 3s
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
+};
+
+window.updateAutosaveUI = function(status = 'saved', showToastPopup = false) {
     const indicators = document.querySelectorAll('.autosave-indicator');
     const now = new Date();
     const timeString = now.getHours().toString().padStart(2, '0') + ':' + 
@@ -16,6 +44,15 @@ window.updateAutosaveUI = function(status = 'saved') {
         }
         lucide.createIcons({ root: indicator });
     });
+    
+    if (showToastPopup) {
+        if (status === 'error') {
+            window.showToast('Failed to save data to cloud.', 'error');
+        } else if (status === 'saved') {
+            const dateStr = now.toLocaleDateString('th-TH');
+            window.showToast(`อัพเดทข้อมูลเรียบร้อยแล้ว (${dateStr} ${timeString})`, 'success');
+        }
+    }
 };
 
 const originalSetItem = localStorage.setItem;
@@ -24,11 +61,11 @@ localStorage.setItem = function(key, value) {
     if (!window.isRestoringFromCloud && window.syncDataToCloud && !key.startsWith('firebase:')) {
         const storedVal = localStorage.getItem(key);
         try {
-            if (window.updateAutosaveUI) window.updateAutosaveUI('saving');
+            if (window.updateAutosaveUI) window.updateAutosaveUI('saving', false);
         } catch(e) {
             console.error(e);
         }
-        window.syncDataToCloud(key, storedVal);
+        window.syncDataToCloud(key, storedVal, true);
     }
 };
 
@@ -2253,6 +2290,15 @@ document.getElementById('invPrincipal').addEventListener('input', calculateInves
 document.getElementById('invMonthly').addEventListener('input', calculateInvestment);
 document.getElementById('invRate').addEventListener('input', calculateInvestment);
 document.getElementById('invYears').addEventListener('input', calculateInvestment);
+document.getElementById('taxIncType').addEventListener('change', calculateTax);
+document.getElementById('taxDeductType').addEventListener('change', calculateTax);
+
+// ---- DEBUG: Show a test toast on load so the user knows they have the latest code ----
+setTimeout(() => {
+    if (window.showToast) {
+        window.showToast('✅ โค้ดเวอร์ชันล่าสุดทำงานแล้ว! (Test Pop-up)', 'success');
+    }
+}, 1500);
 
 const refreshInsightBtn = document.getElementById('refreshInsightBtn');
 if(refreshInsightBtn) {
