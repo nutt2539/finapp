@@ -149,7 +149,7 @@ auth.onAuthStateChanged(async (user) => {
                     // Inject app.js if not already loaded
                     if (!isAppLoaded) {
                         const script = document.createElement('script');
-                        script.src = 'app.js?v=7';
+                        script.src = 'app.js?v=' + Date.now();
                         script.onload = () => {
                             if (window.updateAutosaveUI) window.updateAutosaveUI('saved', false);
                         };
