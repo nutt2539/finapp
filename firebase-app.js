@@ -16,26 +16,36 @@ const db = firebase.firestore();
 let currentUser = null;
 let isAppLoaded = false;
 
-// Explicit sync function
-window.syncDataToCloud = async function() {
+// Explicit sync function (Sync specific key, or all if none provided)
+window.syncDataToCloud = async function(specificKey = null, specificValue = null) {
     if (!currentUser) return false;
     try {
-        const promises = [];
-        for (let i = 0; i < localStorage.length; i++) {
-            const key = localStorage.key(i);
-            const val = localStorage.getItem(key);
-            if (val && key.startsWith('finance_')) {
-                promises.push(db.collection('users').doc(currentUser.uid).collection('data').doc(key).set({
-                    value: val,
+        if (specificKey) {
+            // Sync only specific key
+            if (!specificKey.startsWith('firebase:')) {
+                await db.collection('users').doc(currentUser.uid).collection('data').doc(specificKey).set({
+                    value: specificValue,
                     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                }));
+                });
             }
+        } else {
+            // Sync all local storage
+            const promises = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                const val = localStorage.getItem(key);
+                if (val && !key.startsWith('firebase:')) {
+                    promises.push(db.collection('users').doc(currentUser.uid).collection('data').doc(key).set({
+                        value: val,
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    }));
+                }
+            }
+            await Promise.all(promises);
         }
-        await Promise.all(promises);
         return true;
     } catch(err) {
         console.error("Firebase sync error:", err);
-        alert("Firebase Sync Error: " + err.message);
         return false;
     }
 };
@@ -70,26 +80,31 @@ auth.onAuthStateChanged(async (user) => {
             if (snapshot.empty) {
                 // No data in Firestore. Migrate from local storage if it exists.
                 let migrated = false;
+                window.isRestoringFromCloud = true;
                 for (let i = 0; i < localStorage.length; i++) {
                     const key = localStorage.key(i);
                     const val = localStorage.getItem(key);
-                    if (val) {
-                        // This triggers the overridden setItem, which uploads to Firestore
+                    if (val && !key.startsWith('firebase:')) {
+                        // We silence the individual overrides to avoid hammering Firestore
                         localStorage.setItem(key, val); 
                         migrated = true;
                     }
                 }
+                window.isRestoringFromCloud = false;
+                
                 if (migrated) {
                     console.log("Migrated local data to Firestore!");
-                    if (window.syncDataToCloud) window.syncDataToCloud();
+                    if (window.syncDataToCloud) window.syncDataToCloud(); // bulk upload
                 }
             } else {
                 // Restore from Firestore to localStorage silently
+                window.isRestoringFromCloud = true;
                 snapshot.forEach(doc => {
                     if (doc.data().value) {
                         localStorage.setItem(doc.id, doc.data().value);
                     }
                 });
+                window.isRestoringFromCloud = false;
                 console.log("Data loaded from Firestore");
             }
             
