@@ -59,15 +59,35 @@ window.updateAutosaveUI = function(status = 'saved', showToastPopup = false) {
 
 const originalSetItem = localStorage.setItem;
 localStorage.setItem = function(key, value) {
-    originalSetItem.apply(this, arguments);
-    if (!window.isRestoringFromCloud && window.syncDataToCloud && !key.startsWith('firebase:')) {
-        const storedVal = localStorage.getItem(key);
-        try {
-            if (window.updateAutosaveUI) window.updateAutosaveUI('saving', true);
-        } catch(e) {
-            console.error(e);
-        }
+    try {
+        originalSetItem.apply(this, arguments);
+    } catch(err) {
+        if (window.showToast) window.showToast('DEBUG: originalSetItem error ' + err.message, 'error');
+    }
+    
+    if (key.startsWith('firebase:')) return;
+    
+    if (window.isRestoringFromCloud) {
+        if (window.showToast) window.showToast('DEBUG: ไม่ได้เซฟเพราะติดสถานะ กำลังโหลดจาก Cloud (อาจจะแคช)', 'error');
+        return;
+    }
+    
+    if (!window.syncDataToCloud) {
+        if (window.showToast) window.showToast('DEBUG: ไม่ได้เซฟเพราะหาฟังก์ชัน syncDataToCloud ไม่เจอ', 'error');
+        return;
+    }
+
+    const storedVal = localStorage.getItem(key);
+    try {
+        if (window.updateAutosaveUI) window.updateAutosaveUI('saving', true);
+    } catch(e) {
+        console.error(e);
+    }
+    
+    try {
         window.syncDataToCloud(key, storedVal, true);
+    } catch(e) {
+        if (window.showToast) window.showToast('DEBUG: syncDataToCloud error ' + e.message, 'error');
     }
 };
 
