@@ -34,16 +34,10 @@ window.syncDataToCloud = async function(specificKey = null, specificValue = null
         if (specificKey) {
             // Sync only specific key
             if (!specificKey.startsWith('firebase:')) {
-                const savePromise = db.collection('users').doc(currentUser.uid).collection('data').doc(specificKey).set({
+                await db.collection('users').doc(currentUser.uid).collection('data').doc(specificKey).set({
                     value: specificValue,
                     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                 });
-                
-                const timeoutPromise = new Promise((_, reject) => {
-                    setTimeout(() => reject(new Error("FIREBASE_TIMEOUT")), 5000);
-                });
-                
-                await Promise.race([savePromise, timeoutPromise]);
             }
         } else {
             // Sync all local storage
@@ -66,18 +60,45 @@ window.syncDataToCloud = async function(specificKey = null, specificValue = null
         
         window.isSavingToCloud = false;
         return true;
-    } catch (e) {
-        if (e.message === "FIREBASE_TIMEOUT") {
-            alert("❌ สัญญาณอินเทอร์เน็ตมีปัญหา หรือ Firebase ไม่ตอบสนอง (Timeout)! ข้อมูลยังไม่ถูกเซฟลง Cloud กรุณาเช็คว่าสร้าง Database ใน Firebase หรือยังครับ");
-        } else if (e.message && e.message.includes('Missing or insufficient permissions')) {
-            alert("🚨 Firebase ถูกบล็อก! คุณต้องไปแก้ Security Rules ในแท็บ Rules ให้เป็น true ก่อน ข้อมูลถึงจะเซฟได้ครับ");
-        } else {
-            alert("⚠️ เกิดข้อผิดพลาดในการเซฟลง Cloud: " + e.message);
-        }
-        console.error("Error syncing to cloud: ", e);
+    } catch(err) {
+        console.error("Firebase sync error:", err);
         if (window.updateAutosaveUI) window.updateAutosaveUI('error', showToast);
         window.isSavingToCloud = false;
         return false;
+    }
+};
+
+window.downloadDataFromCloud = async function() {
+    if (!currentUser) return;
+    
+    let snapshot;
+    try {
+        snapshot = await db.collection('users').doc(currentUser.uid).collection('data').get();
+    } catch(err) {
+        console.error("Firebase fetch error:", err);
+        return;
+    }
+    
+    if (!snapshot.empty) {
+        window.isRestoringFromCloud = true;
+        try {
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                if (data && data.value !== undefined) {
+                    localStorage.setItem(doc.id, data.value);
+                }
+            });
+            console.log("Data restored from cloud.");
+            // Refresh UI to show new data
+            if (typeof updateDashboard === 'function') updateDashboard();
+            if (typeof renderCategoryManageList === 'function') {
+                renderCategoryManageList();
+                renderCategoryDropdowns();
+            }
+            if (typeof renderFixedManageLists === 'function') renderFixedManageLists();
+        } finally {
+            window.isRestoringFromCloud = false;
+        }
     }
 };
 
@@ -162,7 +183,7 @@ auth.onAuthStateChanged(async (user) => {
                     // Inject app.js if not already loaded
                     if (!isAppLoaded) {
                         const script = document.createElement('script');
-                        script.src = 'app.js?v=' + Date.now();
+                        script.src = 'app.js?v=7';
                         script.onload = () => {
                             if (window.updateAutosaveUI) window.updateAutosaveUI('saved', false);
                         };
