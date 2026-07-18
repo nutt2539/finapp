@@ -31,13 +31,16 @@ window.syncDataToCloud = async function(specificKey = null, specificValue = null
     if (!currentUser) return false;
     window.isSavingToCloud = true;
     try {
+        const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('FIREBASE_TIMEOUT')), 5000));
+        
         if (specificKey) {
             // Sync only specific key
             if (!specificKey.startsWith('firebase:')) {
-                await db.collection('users').doc(currentUser.uid).collection('data').doc(specificKey).set({
+                const savePromise = db.collection('users').doc(currentUser.uid).collection('data').doc(specificKey).set({
                     value: specificValue,
                     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                 });
+                await Promise.race([savePromise, timeoutPromise]);
             }
         } else {
             // Sync all local storage
@@ -52,19 +55,24 @@ window.syncDataToCloud = async function(specificKey = null, specificValue = null
                     }));
                 }
             }
-            await Promise.all(promises);
+            await Promise.race([Promise.all(promises), timeoutPromise]);
         }
         
         // Update Autosave UI
         if (window.updateAutosaveUI) window.updateAutosaveUI('saved', showToast);
         
-        window.isSavingToCloud = false;
         return true;
-    } catch(err) {
-        console.error("Firebase sync error:", err);
-        if (window.updateAutosaveUI) window.updateAutosaveUI('error', showToast);
-        window.isSavingToCloud = false;
+    } catch (e) {
+        if (e.message === 'FIREBASE_TIMEOUT') {
+            if (showToast) alert('❌ การบันทึกข้อมูลล่าช้า: สัญญาณอินเทอร์เน็ตหรือเซิร์ฟเวอร์อาจมีปัญหา ข้อมูลยังถูกบันทึกในเครื่องและจะส่งซ้ำเมื่อพร้อม');
+            if (window.updateAutosaveUI) window.updateAutosaveUI('error', showToast);
+        } else {
+            console.error("Firebase sync error:", e);
+            if (window.updateAutosaveUI) window.updateAutosaveUI('error', showToast);
+        }
         return false;
+    } finally {
+        window.isSavingToCloud = false;
     }
 };
 
