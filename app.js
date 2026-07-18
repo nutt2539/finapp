@@ -2286,12 +2286,12 @@ function calculateInvestment() {
     });
 }
 
-document.getElementById('invPrincipal').addEventListener('input', calculateInvestment);
-document.getElementById('invMonthly').addEventListener('input', calculateInvestment);
-document.getElementById('invRate').addEventListener('input', calculateInvestment);
-document.getElementById('invYears').addEventListener('input', calculateInvestment);
-document.getElementById('taxIncType').addEventListener('change', calculateTax);
-document.getElementById('taxDeductType').addEventListener('change', calculateTax);
+document.getElementById('invPrincipal')?.addEventListener('input', calculateInvestment);
+document.getElementById('invMonthly')?.addEventListener('input', calculateInvestment);
+document.getElementById('invRate')?.addEventListener('input', calculateInvestment);
+document.getElementById('invYears')?.addEventListener('input', calculateInvestment);
+document.getElementById('taxIncType')?.addEventListener('change', calculateTax);
+document.getElementById('taxDeductType')?.addEventListener('change', calculateTax);
 
 // ---- DEBUG: Show a test toast on load so the user knows they have the latest code ----
 setTimeout(() => {
