@@ -16,9 +16,10 @@ const db = firebase.firestore();
 let currentUser = null;
 let isAppLoaded = false;
 
-// Explicit sync function (Sync specific key, or all if none provided)
+window.isSavingToCloud = false;
 window.syncDataToCloud = async function(specificKey = null, specificValue = null) {
     if (!currentUser) return false;
+    window.isSavingToCloud = true;
     try {
         if (specificKey) {
             // Sync only specific key
@@ -47,10 +48,12 @@ window.syncDataToCloud = async function(specificKey = null, specificValue = null
         // Update Autosave UI
         if (window.updateAutosaveUI) window.updateAutosaveUI();
         
+        window.isSavingToCloud = false;
         return true;
     } catch(err) {
         console.error("Firebase sync error:", err);
         if (window.updateAutosaveUI) window.updateAutosaveUI('error');
+        window.isSavingToCloud = false;
         return false;
     }
 };

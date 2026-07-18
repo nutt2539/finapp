@@ -3,7 +3,8 @@ window.updateAutosaveUI = function(status = 'saved') {
     const indicators = document.querySelectorAll('.autosave-indicator');
     const now = new Date();
     const timeString = now.getHours().toString().padStart(2, '0') + ':' + 
-                       now.getMinutes().toString().padStart(2, '0');
+                       now.getMinutes().toString().padStart(2, '0') + ':' +
+                       now.getSeconds().toString().padStart(2, '0');
                        
     indicators.forEach(indicator => {
         if (status === 'saving') {
@@ -30,6 +31,15 @@ localStorage.setItem = function(key, value) {
         window.syncDataToCloud(key, storedVal);
     }
 };
+
+// Prevent page refresh if data is still saving
+window.addEventListener('beforeunload', (e) => {
+    if (window.isSavingToCloud) {
+        e.preventDefault();
+        e.returnValue = 'Data is still saving to the cloud. Are you sure you want to leave?';
+        return e.returnValue;
+    }
+});
 
 // Initialize Lucide icons
 lucide.createIcons();
