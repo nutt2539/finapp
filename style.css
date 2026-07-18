@@ -232,6 +232,26 @@ body {
     gap: 12px;
     align-items: center;
 }
+.autosave-indicator {
+    font-size: 12px;
+    color: var(--text-muted);
+    background-color: var(--glass-bg);
+    padding: 6px 12px;
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid var(--border-color);
+    white-space: nowrap;
+}
+@keyframes spin {
+    100% {
+        transform: rotate(360deg);
+    }
+}
+.spin {
+    animation: spin 2s linear infinite;
+}
 
 .header-title h1 {
     font-size: 32px;

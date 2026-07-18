@@ -1,9 +1,26 @@
 // --- LocalStorage Cloud Sync Wrapper ---
+window.updateAutosaveUI = function(status = 'saved') {
+    const indicators = document.querySelectorAll('.autosave-indicator');
+    const now = new Date();
+    const timeString = now.getHours().toString().padStart(2, '0') + ':' + 
+                       now.getMinutes().toString().padStart(2, '0');
+                       
+    indicators.forEach(indicator => {
+        if (status === 'saving') {
+            indicator.innerHTML = `<i data-lucide="refresh-cw" class="spin" style="width: 14px; height: 14px;"></i> Saving...`;
+        } else {
+            indicator.innerHTML = `<i data-lucide="cloud-lightning" style="width: 14px; height: 14px;"></i> Last saved: ${timeString}`;
+        }
+        lucide.createIcons({ root: indicator });
+    });
+};
+
 const originalSetItem = localStorage.setItem;
 localStorage.setItem = function(key, value) {
     originalSetItem.apply(this, arguments);
     if (!window.isRestoringFromCloud && window.syncDataToCloud && !key.startsWith('firebase:')) {
         const storedVal = localStorage.getItem(key);
+        if (window.updateAutosaveUI) window.updateAutosaveUI('saving');
         window.syncDataToCloud(key, storedVal);
     }
 };

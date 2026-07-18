@@ -43,6 +43,10 @@ window.syncDataToCloud = async function(specificKey = null, specificValue = null
             }
             await Promise.all(promises);
         }
+        
+        // Update Autosave UI
+        if (window.updateAutosaveUI) window.updateAutosaveUI();
+        
         return true;
     } catch(err) {
         console.error("Firebase sync error:", err);
@@ -74,54 +78,80 @@ auth.onAuthStateChanged(async (user) => {
         document.getElementById('loginStatus').innerText = "Loading your data securely...";
         
         try {
-            // Fetch all docs for this user
-            const snapshot = await db.collection('users').doc(user.uid).collection('data').get();
+            let initialLoadDone = false;
             
-            if (snapshot.empty) {
-                // No data in Firestore. Migrate from local storage if it exists.
-                let migrated = false;
-                window.isRestoringFromCloud = true;
-                for (let i = 0; i < localStorage.length; i++) {
-                    const key = localStorage.key(i);
-                    const val = localStorage.getItem(key);
-                    if (val && !key.startsWith('firebase:')) {
-                        // We silence the individual overrides to avoid hammering Firestore
-                        localStorage.setItem(key, val); 
-                        migrated = true;
+            // Listen for real-time updates from Cloud
+            db.collection('users').doc(user.uid).collection('data').onSnapshot((snapshot) => {
+                if (snapshot.empty && !initialLoadDone) {
+                    // No data in Firestore. Migrate from local storage if it exists.
+                    let migrated = false;
+                    window.isRestoringFromCloud = true;
+                    for (let i = 0; i < localStorage.length; i++) {
+                        const key = localStorage.key(i);
+                        const val = localStorage.getItem(key);
+                        if (val && !key.startsWith('firebase:')) {
+                            migrated = true;
+                        }
+                    }
+                    window.isRestoringFromCloud = false;
+                    
+                    if (migrated) {
+                        console.log("Migrated local data to Firestore!");
+                        if (window.syncDataToCloud) window.syncDataToCloud(); // bulk upload
+                    }
+                } else {
+                    // Restore from Firestore to localStorage silently
+                    window.isRestoringFromCloud = true;
+                    let hasRemoteChanges = false;
+                    snapshot.docChanges().forEach(change => {
+                        // Check if change came from server (not a local unacknowledged write)
+                        if (!change.doc.metadata.hasPendingWrites) {
+                            const val = change.doc.data().value;
+                            if (val && localStorage.getItem(change.doc.id) !== val) {
+                                localStorage.setItem(change.doc.id, val);
+                                hasRemoteChanges = true;
+                            }
+                        }
+                    });
+                    window.isRestoringFromCloud = false;
+                    
+                    if (hasRemoteChanges && initialLoadDone) {
+                        console.log("Data updated from another device! Reloading...");
+                        window.location.reload();
                     }
                 }
-                window.isRestoringFromCloud = false;
                 
-                if (migrated) {
-                    console.log("Migrated local data to Firestore!");
-                    if (window.syncDataToCloud) window.syncDataToCloud(); // bulk upload
-                }
-            } else {
-                // Restore from Firestore to localStorage silently
-                window.isRestoringFromCloud = true;
-                snapshot.forEach(doc => {
-                    if (doc.data().value) {
-                        localStorage.setItem(doc.id, doc.data().value);
+                if (!initialLoadDone) {
+                    initialLoadDone = true;
+                    // Hide overlay, show app
+                    document.getElementById('loginOverlay').style.display = 'none';
+                    document.getElementById('mainAppContainer').style.display = 'flex';
+                    
+                    // Inject app.js if not already loaded
+                    if (!isAppLoaded) {
+                        const script = document.createElement('script');
+                        script.src = 'app.js?v=2';
+                        script.onload = () => {
+                            if (window.updateAutosaveUI) window.updateAutosaveUI('saved');
+                        };
+                        document.body.appendChild(script);
+                        isAppLoaded = true;
+                    } else {
+                        window.location.reload();
                     }
-                });
-                window.isRestoringFromCloud = false;
-                console.log("Data loaded from Firestore");
-            }
-            
-            // Hide overlay, show app
-            document.getElementById('loginOverlay').style.display = 'none';
-            document.getElementById('mainAppContainer').style.display = 'flex';
-            
-            // Inject app.js if not already loaded
-            if (!isAppLoaded) {
-                const script = document.createElement('script');
-                script.src = 'app.js?v=2';
-                document.body.appendChild(script);
-                isAppLoaded = true;
-            } else {
-                // If app is already loaded (e.g. re-login without refresh), reload page
-                window.location.reload();
-            }
+                    
+                    // Fallback Autosave every 1 minute
+                    setInterval(() => {
+                        if (window.syncDataToCloud) {
+                            window.syncDataToCloud();
+                        }
+                    }, 60000);
+                }
+                
+            }, (err) => {
+                console.error("Snapshot error:", err);
+                document.getElementById('loginStatus').innerText = "Error syncing data: " + err.message;
+            });
             
         } catch(err) {
             document.getElementById('loginStatus').innerText = "Error loading data: " + err.message;
