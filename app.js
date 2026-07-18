@@ -50,7 +50,9 @@ window.updateAutosaveUI = function(status = 'saved', showToastPopup = false) {
             window.showToast('Failed to save data to cloud.', 'error');
         } else if (status === 'saved') {
             const dateStr = now.toLocaleDateString('th-TH');
-            window.showToast(`อัพเดทข้อมูลเรียบร้อยแล้ว (${dateStr} ${timeString})`, 'success');
+            window.showToast(`อัพเดทข้อมูลลง Cloud เรียบร้อยแล้ว (${timeString})`, 'success');
+        } else if (status === 'saving') {
+            window.showToast('กำลังบันทึกข้อมูล...', 'success');
         }
     }
 };
@@ -61,7 +63,7 @@ localStorage.setItem = function(key, value) {
     if (!window.isRestoringFromCloud && window.syncDataToCloud && !key.startsWith('firebase:')) {
         const storedVal = localStorage.getItem(key);
         try {
-            if (window.updateAutosaveUI) window.updateAutosaveUI('saving', false);
+            if (window.updateAutosaveUI) window.updateAutosaveUI('saving', true);
         } catch(e) {
             console.error(e);
         }

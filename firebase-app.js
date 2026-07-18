@@ -34,10 +34,16 @@ window.syncDataToCloud = async function(specificKey = null, specificValue = null
         if (specificKey) {
             // Sync only specific key
             if (!specificKey.startsWith('firebase:')) {
-                await db.collection('users').doc(currentUser.uid).collection('data').doc(specificKey).set({
+                const savePromise = db.collection('users').doc(currentUser.uid).collection('data').doc(specificKey).set({
                     value: specificValue,
                     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                 });
+                
+                const timeoutPromise = new Promise((_, reject) => {
+                    setTimeout(() => reject(new Error("FIREBASE_TIMEOUT")), 5000);
+                });
+                
+                await Promise.race([savePromise, timeoutPromise]);
             }
         } else {
             // Sync all local storage
@@ -60,8 +66,11 @@ window.syncDataToCloud = async function(specificKey = null, specificValue = null
         
         window.isSavingToCloud = false;
         return true;
-    } catch(err) {
-        console.error("Firebase sync error:", err);
+    } catch (e) {
+        if (e.message === "FIREBASE_TIMEOUT") {
+            alert("❌ สัญญาณอินเทอร์เน็ตมีปัญหา หรือ Firebase ไม่ตอบสนอง (Timeout)! ข้อมูลยังไม่ถูกเซฟลง Cloud กรุณาเช็คว่าสร้าง Database ใน Firebase หรือยังครับ");
+        }
+        console.error("Error syncing to cloud: ", e);
         if (window.updateAutosaveUI) window.updateAutosaveUI('error', showToast);
         window.isSavingToCloud = false;
         return false;
