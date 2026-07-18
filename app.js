@@ -8,6 +8,8 @@ window.updateAutosaveUI = function(status = 'saved') {
     indicators.forEach(indicator => {
         if (status === 'saving') {
             indicator.innerHTML = `<i data-lucide="refresh-cw" class="spin" style="width: 14px; height: 14px;"></i> Saving...`;
+        } else if (status === 'error') {
+            indicator.innerHTML = `<i data-lucide="alert-triangle" style="width: 14px; height: 14px; color: var(--danger-color);"></i> Error Syncing`;
         } else {
             indicator.innerHTML = `<i data-lucide="cloud-lightning" style="width: 14px; height: 14px;"></i> Last saved: ${timeString}`;
         }
@@ -20,7 +22,11 @@ localStorage.setItem = function(key, value) {
     originalSetItem.apply(this, arguments);
     if (!window.isRestoringFromCloud && window.syncDataToCloud && !key.startsWith('firebase:')) {
         const storedVal = localStorage.getItem(key);
-        if (window.updateAutosaveUI) window.updateAutosaveUI('saving');
+        try {
+            if (window.updateAutosaveUI) window.updateAutosaveUI('saving');
+        } catch(e) {
+            console.error(e);
+        }
         window.syncDataToCloud(key, storedVal);
     }
 };

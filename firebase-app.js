@@ -50,6 +50,7 @@ window.syncDataToCloud = async function(specificKey = null, specificValue = null
         return true;
     } catch(err) {
         console.error("Firebase sync error:", err);
+        if (window.updateAutosaveUI) window.updateAutosaveUI('error');
         return false;
     }
 };
@@ -103,17 +104,22 @@ auth.onAuthStateChanged(async (user) => {
                     // Restore from Firestore to localStorage silently
                     window.isRestoringFromCloud = true;
                     let hasRemoteChanges = false;
-                    snapshot.docChanges().forEach(change => {
-                        // Check if change came from server (not a local unacknowledged write)
-                        if (!change.doc.metadata.hasPendingWrites) {
-                            const val = change.doc.data().value;
-                            if (val && localStorage.getItem(change.doc.id) !== val) {
-                                localStorage.setItem(change.doc.id, val);
-                                hasRemoteChanges = true;
+                    try {
+                        snapshot.docChanges().forEach(change => {
+                            // Check if change came from server (not a local unacknowledged write)
+                            if (!change.doc.metadata.hasPendingWrites) {
+                                const val = change.doc.data().value;
+                                if (val && localStorage.getItem(change.doc.id) !== val) {
+                                    localStorage.setItem(change.doc.id, val);
+                                    hasRemoteChanges = true;
+                                }
                             }
-                        }
-                    });
-                    window.isRestoringFromCloud = false;
+                        });
+                    } catch(err) {
+                        console.error("Error in onSnapshot docChanges processing:", err);
+                    } finally {
+                        window.isRestoringFromCloud = false;
+                    }
                     
                     if (hasRemoteChanges && initialLoadDone) {
                         console.log("Data updated from another device! Reloading...");
@@ -130,7 +136,7 @@ auth.onAuthStateChanged(async (user) => {
                     // Inject app.js if not already loaded
                     if (!isAppLoaded) {
                         const script = document.createElement('script');
-                        script.src = 'app.js?v=2';
+                        script.src = 'app.js?v=3';
                         script.onload = () => {
                             if (window.updateAutosaveUI) window.updateAutosaveUI('saved');
                         };
