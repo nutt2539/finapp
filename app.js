@@ -66,6 +66,7 @@ Storage.prototype.setItem = function(key, value) {
     }
     
     if (key.startsWith('firebase:')) return;
+    if (key === 'localCalendarEvents' || key === 'calendarStamps') return;
     
     if (window.isRestoringFromCloud) {
         if (window.showToast) window.showToast('DEBUG: ไม่ได้เซฟเพราะติดสถานะ กำลังโหลดจาก Cloud (อาจจะแคช)', 'error');
@@ -284,6 +285,8 @@ const closeBtns = document.querySelectorAll('.close-modal');
 
 let mainChartInstance = null;
 let categoryChartInstance = null;
+let trendChartInstance = null;
+let dayOfWeekChartInstance = null;
 
 // --- Category Logic ---
 function renderCategoryDropdowns() {
@@ -608,7 +611,24 @@ function getFilteredTransactions() {
             return tDate.getFullYear().toString() === selectedYear;
         }
     });
-    return [...normal, ...getVirtualFixedTransactions()];
+    // Find which months in 'normal' have AI extracted data
+    const aiImportedMonths = new Set();
+    normal.forEach(t => {
+        if (t.note === 'AI Extracted Income' || t.note === 'AI Extracted Expense' || t.note === 'จากไฟล์ CSV (AI)') {
+            const tDate = new Date(t.date);
+            const tMonth = `${tDate.getFullYear()}-${String(tDate.getMonth() + 1).padStart(2, '0')}`;
+            aiImportedMonths.add(tMonth);
+        }
+    });
+
+    // Filter virtual fixed transactions: only include them if their month is NOT in aiImportedMonths
+    const validVirtualFixed = getVirtualFixedTransactions().filter(v => {
+        const vDate = new Date(v.date);
+        const vMonth = `${vDate.getFullYear()}-${String(vDate.getMonth() + 1).padStart(2, '0')}`;
+        return !aiImportedMonths.has(vMonth);
+    });
+
+    return [...normal, ...validVirtualFixed];
 }
 
 
@@ -942,7 +962,9 @@ function updateMainChart() {
         
         filtered.forEach(t => {
             const date = new Date(t.date);
-            const week = Math.floor((date.getDate() - 1) / 7);
+            const firstDay = new Date(date.getFullYear(), date.getMonth(), 1).getDay();
+            const offset = firstDay === 0 ? 6 : firstDay - 1; // Mon=0, Tue=1, ..., Sun=6
+            const week = Math.floor((date.getDate() - 1 + offset) / 7);
             const wIndex = week > 4 ? 4 : week;
             
             if (t.type === 'income') {
@@ -1070,6 +1092,8 @@ function updateCategoryChart() {
         }
     });
 }
+
+
 
 // --- Event Listeners ---
 
@@ -1834,6 +1858,11 @@ function getEventSources() {
         const url = calendarUrls.apple.startsWith('http') ? proxy + encodeURIComponent(calendarUrls.apple) : calendarUrls.apple;
         sources.push({ url: url, format: 'ics', color: '#ff2d55' });
     }
+    
+    sources.push({
+        events: localCalendarEvents,
+        id: 'local-events'
+    });
     return sources;
 }
 
@@ -1852,7 +1881,34 @@ function renderCalendar() {
             height: '100%',
             contentHeight: '100%',
             expandRows: true,
-            displayEventTime: true
+            displayEventTime: true,
+            dateClick: function(info) {
+                if (isStampMode && activeStamp && activeStamp.id !== 'eraser') {
+                    const newEvent = {
+                        id: 'evt_' + Date.now(),
+                        title: activeStamp.name,
+                        start: info.dateStr,
+                        allDay: true,
+                        backgroundColor: activeStamp.color,
+                        borderColor: activeStamp.color
+                    };
+                    localCalendarEvents.push(newEvent);
+                    saveLocalCalendarEvents();
+                    calendar.addEvent(newEvent);
+                }
+            },
+            eventClick: function(info) {
+                if (isStampMode) {
+                    if (info.event.id && info.event.id.startsWith('evt_')) {
+                        localCalendarEvents = localCalendarEvents.filter(e => e.id !== info.event.id);
+                        saveLocalCalendarEvents();
+                        info.event.remove();
+                    }
+                } else if (info.event.url) {
+                    window.open(info.event.url, '_blank');
+                    info.jsEvent.preventDefault();
+                }
+            }
         });
         calendar.render();
     } else {
@@ -1860,6 +1916,137 @@ function renderCalendar() {
         calendar.getEventSources().forEach(source => source.remove());
         getEventSources().forEach(source => calendar.addEventSource(source));
     }
+}
+
+// --- Stamp Mode Logic ---
+let calendarStamps = JSON.parse(localStorage.getItem('calendarStamps')) || [];
+let localCalendarEvents = JSON.parse(localStorage.getItem('localCalendarEvents')) || [];
+let isStampMode = false;
+let activeStamp = null;
+
+function saveStamps() {
+    localStorage.setItem('calendarStamps', JSON.stringify(calendarStamps));
+}
+
+function saveLocalCalendarEvents() {
+    localStorage.setItem('localCalendarEvents', JSON.stringify(localCalendarEvents));
+}
+
+function renderStamps() {
+    const list = document.getElementById('stampList');
+    if(!list) return;
+    list.innerHTML = '';
+    
+    // Always add an Eraser button
+    const eraserBtn = document.createElement('button');
+    const isEraserActive = isStampMode && activeStamp && activeStamp.id === 'eraser';
+    eraserBtn.className = `btn btn-sm ${isEraserActive ? 'active' : ''}`;
+    eraserBtn.style.backgroundColor = 'var(--surface-color)';
+    eraserBtn.style.color = 'var(--text-main)';
+    eraserBtn.style.border = '1px solid var(--border-color)';
+    if (isEraserActive) {
+        eraserBtn.style.outline = '3px solid var(--text-main)';
+        eraserBtn.style.outlineOffset = '2px';
+    }
+    eraserBtn.innerHTML = `<i data-lucide="eraser" style="width: 16px; height: 16px; margin-right: 4px;"></i> <span>Eraser</span>`;
+    eraserBtn.onclick = () => activateStampMode({ id: 'eraser', name: 'Eraser', color: 'transparent' });
+    list.appendChild(eraserBtn);
+
+    calendarStamps.forEach(stamp => {
+        const btn = document.createElement('button');
+        btn.className = `btn btn-sm ${isStampMode && activeStamp && activeStamp.id === stamp.id ? 'active' : ''}`;
+        btn.style.backgroundColor = stamp.color;
+        btn.style.color = '#fff';
+        btn.style.border = 'none';
+        
+        // Active indicator outline
+        if (isStampMode && activeStamp && activeStamp.id === stamp.id) {
+            btn.style.outline = '3px solid var(--text-main)';
+            btn.style.outlineOffset = '2px';
+        }
+
+        btn.innerHTML = `<span>${stamp.name}</span> <span class="delete-stamp-btn" style="margin-left: 8px; cursor: pointer; display: inline-flex; align-items: center;"><i data-lucide="x" style="width: 14px; height: 14px;"></i></span>`;
+        
+        // Handle Delete Icon click separately
+        btn.querySelector('.delete-stamp-btn').onclick = (e) => {
+            e.stopPropagation();
+            deleteStamp(stamp.id);
+        };
+
+        btn.onclick = (e) => {
+            activateStampMode(stamp);
+        };
+        list.appendChild(btn);
+    });
+    
+    if (calendarStamps.length === 0) {
+        list.innerHTML = '<span style="color: var(--text-secondary); font-size: 14px; font-style: italic;">No stamps yet. Click "Add Stamp" to create one.</span>';
+    }
+    
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+function openAddStampModal() {
+    document.getElementById('addStampModal').classList.add('active');
+}
+
+document.getElementById('addStampForm')?.addEventListener('submit', function(e) {
+    e.preventDefault();
+    const name = document.getElementById('stampName').value;
+    const color = document.getElementById('stampColor').value;
+    
+    calendarStamps.push({
+        id: 'stamp_' + Date.now(),
+        name: name,
+        color: color
+    });
+    
+    saveStamps();
+    renderStamps();
+    document.getElementById('addStampModal').classList.remove('active');
+    e.target.reset();
+});
+
+function deleteStamp(id) {
+    calendarStamps = calendarStamps.filter(s => s.id !== id);
+    if(activeStamp && activeStamp.id === id) {
+        exitStampMode();
+    }
+    saveStamps();
+    renderStamps();
+}
+
+function activateStampMode(stamp) {
+    isStampMode = true;
+    activeStamp = stamp;
+    document.getElementById('exitStampModeBtn').style.display = 'inline-flex';
+    document.getElementById('calendar').style.cursor = 'crosshair';
+    
+    // Add visual cue to calendar
+    const colorCue = stamp.id === 'eraser' ? 'var(--text-secondary)' : stamp.color;
+    document.getElementById('calendar').style.border = `2px dashed ${colorCue}`;
+    document.getElementById('calendar').style.borderRadius = '12px';
+    
+    renderStamps(); // Re-render to show active state
+}
+
+function exitStampMode() {
+    isStampMode = false;
+    activeStamp = null;
+    document.getElementById('exitStampModeBtn').style.display = 'none';
+    document.getElementById('calendar').style.cursor = 'default';
+    
+    // Remove visual cue
+    document.getElementById('calendar').style.border = 'none';
+    
+    renderStamps();
+}
+
+// Initial render of stamps
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', renderStamps);
+} else {
+    renderStamps();
 }
 
 // --- To-Do List Logic ---
@@ -2828,7 +3015,7 @@ if (btnSaveDeductions) {
     btnSaveDeductions.addEventListener('click', () => {
         const deductions = {};
         taxInputs.forEach(id => {
-            deductions[id] = document.getElementById(id).value;
+        deductions[id] = document.getElementById(id).value;
         });
         localStorage.setItem('taxDeductions', JSON.stringify(deductions));
         
@@ -2863,6 +3050,364 @@ function exportData() {
     linkElement.setAttribute('download', exportFileDefaultName);
     linkElement.click();
 }
+
+// --- AI Integrations ---
+function saveGeminiApiKey() {
+    const key = document.getElementById('geminiApiKeyInput').value;
+    localStorage.setItem('geminiApiKey', key);
+    alert('Gemini API Key saved locally!');
+}
+
+setTimeout(() => {
+    const savedKey = localStorage.getItem('geminiApiKey');
+    const inputEl = document.getElementById('geminiApiKeyInput');
+    if (savedKey && inputEl) {
+        inputEl.value = savedKey;
+    }
+}, 100);
+
+let pendingImportTransactions = [];
+
+async function handleBankCsvImport(event) {
+    const files = Array.from(event.target.files);
+    if (files.length === 0) return;
+
+    const apiKey = localStorage.getItem('geminiApiKey');
+    if (!apiKey) {
+        alert('Please enter your Gemini API Key in the AI Integrations section first.');
+        event.target.value = '';
+        return;
+    }
+
+    document.getElementById('csvPreviewStatus').innerText = "🤖 AI is reading your file(s)... 0%";
+    const progressContainer = document.getElementById('csvProgressBarContainer');
+    const progressBar = document.getElementById('csvProgressBar');
+    if (progressContainer) progressContainer.style.display = 'block';
+    if (progressBar) progressBar.style.width = '0%';
+    
+    document.getElementById('csvPreviewTableBody').innerHTML = "";
+    document.getElementById('btnConfirmCsvImport').disabled = true;
+    document.getElementById('csvPreviewModal').classList.add('active');
+
+    const isImage = files.some(file => file.type.startsWith('image/'));
+    
+    let progress = 0;
+    const progressInterval = setInterval(() => {
+        if (progress < 90) {
+            const increment = progress < 50 ? (Math.floor(Math.random() * 3) + 2) : 
+                              progress < 80 ? (Math.floor(Math.random() * 2) + 1) : 
+                              (Math.random() > 0.5 ? 1 : 0);
+            
+            progress += increment;
+            if (progress > 90) progress = 90;
+            
+            let statusText = "🤖 AI is starting up...";
+            if (progress >= 10) statusText = "📤 Reading file & sending to AI...";
+            if (progress >= 40) statusText = "🤔 AI is analyzing transactions...";
+            if (progress >= 70) statusText = "📊 Calculating monthly totals...";
+            
+            if (progressBar) progressBar.style.width = `${progress}%`;
+            document.getElementById('csvPreviewStatus').innerText = `${statusText} ${progress}%`;
+        }
+    }, 150);
+
+    async function animateProgressTo100() {
+        return new Promise(resolve => {
+            const finishInterval = setInterval(() => {
+                progress += 3;
+                if (progress >= 100) {
+                    progress = 100;
+                    clearInterval(finishInterval);
+                    if (progressBar) progressBar.style.width = '100%';
+                    document.getElementById('csvPreviewStatus').innerText = `✅ Analysis Complete! 100%`;
+                    setTimeout(resolve, 600);
+                } else {
+                    if (progressBar) progressBar.style.width = `${progress}%`;
+                    document.getElementById('csvPreviewStatus').innerText = `✨ Finalizing results... ${progress}%`;
+                }
+            }, 20);
+        });
+    }
+
+    try {
+        let monthlyData = [];
+        
+        if (isImage) {
+            const imageFiles = files.filter(f => f.type.startsWith('image/')).slice(0, 15);
+            
+            const base64Images = await Promise.all(imageFiles.map(file => {
+                return new Promise((resolve, reject) => {
+                    const r = new FileReader();
+                    r.onload = e => {
+                        const img = new Image();
+                        img.onload = () => {
+                            // Resize image to max 1500px width or height to save payload size
+                            const MAX_DIM = 1500;
+                            let width = img.width;
+                            let height = img.height;
+                            
+                            if (width > MAX_DIM || height > MAX_DIM) {
+                                if (width > height) {
+                                    height = Math.round(height *= MAX_DIM / width);
+                                    width = MAX_DIM;
+                                } else {
+                                    width = Math.round(width *= MAX_DIM / height);
+                                    height = MAX_DIM;
+                                }
+                            }
+                            
+                            const canvas = document.createElement('canvas');
+                            canvas.width = width;
+                            canvas.height = height;
+                            const ctx = canvas.getContext('2d');
+                            ctx.drawImage(img, 0, 0, width, height);
+                            
+                            // Compress to JPEG with 0.8 quality
+                            const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+                            resolve({
+                                mimeType: "image/jpeg",
+                                data: dataUrl.split(',')[1]
+                            });
+                        };
+                        img.onerror = () => reject(new Error("Failed to load image for compression"));
+                        img.src = e.target.result;
+                    };
+                    r.onerror = err => reject(err);
+                    r.readAsDataURL(file);
+                });
+            }));
+            
+            const aiPrompt = `You are a financial data extractor. I have attached screenshot(s) of a bank statement. 
+Your task is to extract the TOTAL income (deposits) and TOTAL expense (withdrawals) for each month found in this statement.
+1. Look for monthly summary sections if they exist. Do NOT add up individual transactions if a summary is provided.
+2. If you must add them up manually, CRITICAL: IGNORE internal transfers between own accounts/pockets! If a row contains keywords like 'Move Money', 'Transfer to own account', 'แอบออม', skip it entirely. Do not count it as income or expense.
+3. Output the result ONLY as a JSON array of objects EXACTLY like this: [{"month": "2024-05", "income": 1000.0, "expense": 500.0}]
+4. If the year is Buddhist (e.g., 2567), you MUST subtract 543 to get the Gregorian year (e.g., 2024).
+Return ONLY the raw JSON array. No markdown tags, no explanations.`;
+
+            const parts = [{ text: aiPrompt }];
+            for (const img of base64Images) {
+                parts.push({ inline_data: { mime_type: img.mimeType, data: img.data } });
+            }
+
+            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{ parts: parts }],
+                    generationConfig: {
+                        responseMimeType: "application/json"
+                    }
+                })
+            });
+
+            const data = await response.json();
+            
+            clearInterval(progressInterval);
+            await animateProgressTo100();
+
+            if (data.error) throw new Error(`Code ${data.error.code || 'API_ERROR'}: ${data.error.message}`);
+            
+            let responseText = data.candidates[0].content.parts[0].text;
+            responseText = responseText.replace(/```json/g, '').replace(/```javascript/g, '').replace(/```js/g, '').replace(/```/g, '').trim();
+            
+            try {
+                monthlyData = JSON.parse(responseText);
+            } catch (err) {
+                console.error("JSON Parse Error:", err, responseText);
+                throw new Error("AI returned invalid JSON format from images.");
+            }
+
+        } else {
+            // Process single CSV
+            const file = files.find(f => f.name.toLowerCase().endsWith('.csv')) || files[0];
+            const csvText = await new Promise((resolve, reject) => {
+                const r = new FileReader();
+                r.onload = e => resolve(e.target.result);
+                r.onerror = err => reject(err);
+                r.readAsText(file);
+            });
+            
+            function parseCSVToArray(text) {
+                const lines = text.split('\n');
+                return lines.map(line => {
+                    const row = [];
+                    let cur = '';
+                    let inQuote = false;
+                    for (let i = 0; i < line.length; i++) {
+                        if (line[i] === '"') inQuote = !inQuote;
+                        else if (line[i] === ',' && !inQuote) {
+                            row.push(cur.trim());
+                            cur = '';
+                        } else {
+                            cur += line[i];
+                        }
+                    }
+                    row.push(cur.trim());
+                    return row;
+                });
+            }
+
+            const rows = parseCSVToArray(csvText);
+            const sampleRows = rows.slice(0, 20);
+
+            const prompt = `You are a JavaScript expert. I have a 2D array of strings representing a parsed bank statement CSV.
+            I need you to write a JavaScript function body that processes the variable \`rows\` (a 2D array) and calculates the total income and expense for each month.
+            
+            Requirements:
+            1. Loop through \`rows\`. Skip headers, summary rows, or empty rows (look for valid date patterns).
+            2. Extract Date, Income, and Expense. Note that amounts might be empty strings if not applicable. Clean the amount strings (remove commas) and parse as floats.
+            3. CRITICAL: IGNORE internal transfers between own accounts/pockets! If a row contains keywords like 'Move Money', 'Transfer to own account', 'แอบออม', or appears to be an internal transfer between pockets in the same app, skip it entirely. Do not count it as income or expense.
+            4. Group the totals by month. The month string MUST be in "YYYY-MM" format. 
+            5. If the year is Buddhist (e.g., 2567), you MUST subtract 543 to get the Gregorian year (e.g., 2024).
+            6. Return an array of objects EXACTLY like this: \`[{"month": "2024-05", "income": 1000.0, "expense": 500.0}]\`.
+            
+            Here are the first 20 rows of the array to help you identify the column indices:
+            ${JSON.stringify(sampleRows, null, 2)}
+            
+            Return ONLY the raw JavaScript function body code. No markdown tags, no explanations. 
+            Your code will run inside \`new Function('rows', yourCode)\`.
+            `;
+
+            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{ parts: [{ text: prompt }] }]
+                })
+            });
+
+            const data = await response.json();
+            
+            clearInterval(progressInterval);
+            await animateProgressTo100();
+
+            if (data.error) throw new Error(`Code ${data.error.code || 'API_ERROR'}: ${data.error.message}`);
+            
+            let generatedCode = data.candidates[0].content.parts[0].text;
+            // clean markdown
+            generatedCode = generatedCode.replace(/```javascript/g, '').replace(/```js/g, '').replace(/```/g, '').trim();
+
+            try {
+                const processFunction = new Function('rows', generatedCode);
+                monthlyData = processFunction(rows);
+            } catch (evalError) {
+                console.error("AI Generated Code Error:", evalError, generatedCode);
+                throw new Error("AI generated invalid JavaScript code.");
+            }
+        }
+
+        const tbody = document.getElementById('csvPreviewTableBody');
+        tbody.innerHTML = "";
+        pendingImportTransactions = [];
+
+        if (monthlyData && monthlyData.length > 0) {
+            document.getElementById('csvPreviewStatus').innerText = `✅ AI successfully analyzed ${monthlyData.length} months.`;
+            document.getElementById('btnConfirmCsvImport').disabled = false;
+
+            // Sort ascending by month
+            monthlyData.sort((a, b) => a.month.localeCompare(b.month));
+
+            monthlyData.forEach(item => {
+                const fakeId = "ai_" + Date.now() + "_" + Math.floor(Math.random() * 1000);
+                
+                if (item.income > 0) {
+                    pendingImportTransactions.push({
+                        id: fakeId + "_in",
+                        date: `${item.month}-01`,
+                        amount: parseFloat(item.income),
+                        category: "Salary",
+                        type: "income",
+                        note: "AI Extracted Income"
+                    });
+                }
+                
+                if (item.expense > 0) {
+                    pendingImportTransactions.push({
+                        id: fakeId + "_ex",
+                        date: `${item.month}-01`,
+                        amount: parseFloat(item.expense),
+                        category: "Shopping",
+                        type: "expense",
+                        note: "AI Extracted Expense"
+                    });
+                }
+            });
+
+            pendingImportTransactions.slice(0, 50).forEach(t => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${t.date}</td>
+                    <td>${t.type === 'income' ? 'Income' : 'Expense'}</td>
+                    <td class="${t.type === 'income' ? 'amount-positive' : 'amount-negative'}">
+                        ${t.type === 'income' ? '+' : '-'}${formatCurrency(t.amount)}
+                    </td>
+                    <td>${t.note}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+            
+            if (pendingImportTransactions.length > 50) {
+                tbody.innerHTML += `<tr><td colspan="4" style="text-align: center; color: var(--text-secondary);">... and ${pendingImportTransactions.length - 50} more</td></tr>`;
+            }
+
+        } else {
+            throw new Error("No monthly data found in the response.");
+        }
+
+    } catch (error) {
+        clearInterval(progressInterval);
+        const progressContainer = document.getElementById('csvProgressBarContainer');
+        if (progressContainer) progressContainer.style.display = 'none';
+        console.error("AI Parse Error:", error);
+        document.getElementById('csvPreviewStatus').innerText = `❌ Error: ${error.message}`;
+        alert(`🚨 AI Processing Failed\n\n${error.message}\n\nPlease check your API Key and try again.`);
+    }
+    
+    event.target.value = '';
+}
+
+document.getElementById('btnConfirmCsvImport')?.addEventListener('click', () => {
+    if (pendingImportTransactions.length > 0) {
+        // Clear all previously imported AI data before adding new ones
+        transactions = transactions.filter(t => t.note !== 'จากไฟล์ CSV (AI)' && t.note !== 'AI Extracted Income' && t.note !== 'AI Extracted Expense');
+        
+        transactions = [...transactions, ...pendingImportTransactions];
+        // Sort by date descending
+        transactions.sort((a, b) => new Date(b.date) - new Date(a.date));
+        
+        // Auto-switch dashboard to the month of the newly imported data
+        pendingImportTransactions.sort((a, b) => new Date(b.date) - new Date(a.date));
+        const newestDate = pendingImportTransactions[0].date;
+        selectedMonth = newestDate.substring(0, 7);
+        selectedYear = newestDate.substring(0, 4);
+        
+        const monthPickerEl = document.getElementById('monthPicker');
+        const yearPickerEl = document.getElementById('yearPicker');
+        if (monthPickerEl) monthPickerEl.value = selectedMonth;
+        if (yearPickerEl) {
+            let hasYear = false;
+            for(let i=0; i<yearPickerEl.options.length; i++) {
+                if(yearPickerEl.options[i].value === selectedYear) { hasYear = true; break; }
+            }
+            if(!hasYear) {
+                const opt = document.createElement('option');
+                opt.value = selectedYear;
+                opt.textContent = selectedYear;
+                yearPickerEl.appendChild(opt);
+            }
+            yearPickerEl.value = selectedYear;
+        }
+        
+        saveTransactions();
+        updateDashboard();
+        document.getElementById('csvPreviewModal').classList.remove('active');
+        pendingImportTransactions = [];
+        
+        // Switch to dashboard tab to see results
+        document.querySelector('.nav-item[data-view="view-dashboard"]').click();
+    }
+});
 
 function importData() {
     const fileInput = document.getElementById('importDataFile');
@@ -2983,11 +3528,27 @@ async function loadWeather() {
         if (window.lucide) {
             window.lucide.createIcons();
         }
-    } catch (e) {
-        console.error("Weather load failed", e);
-        descEl.innerText = "โหลดไม่สำเร็จ";
+    } catch (err) {
+        console.error("Weather error:", err);
     }
 }
+
+function clearAIImportedData() {
+    const aiTransactions = transactions.filter(t => t.note === 'จากไฟล์ CSV (AI)' || t.note === 'AI Extracted Income' || t.note === 'AI Extracted Expense');
+    if (aiTransactions.length === 0) {
+        alert("ไม่พบข้อมูลที่เคยนำเข้าด้วย AI ครับ (No AI imported data found).");
+        return;
+    }
+    
+    if (confirm(`คุณต้องการลบข้อมูลที่นำเข้าด้วย AI จำนวน ${aiTransactions.length} รายการ ใช่หรือไม่?\n(Are you sure you want to delete ${aiTransactions.length} AI imported transactions?)`)) {
+        transactions = transactions.filter(t => t.note !== 'จากไฟล์ CSV (AI)' && t.note !== 'AI Extracted Income' && t.note !== 'AI Extracted Expense');
+        saveTransactions();
+        updateDashboard();
+        updatePlanningView();
+        alert("ลบข้อมูลเรียบร้อยแล้วครับ (Deleted successfully).");
+    }
+}
+
 loadWeather();
 
 // --- Mobile Menu Toggle ---

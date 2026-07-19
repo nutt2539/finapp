@@ -22,12 +22,14 @@
         };
     </script>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- PapaParse -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
     <!-- Styles -->
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=14">
     <!-- FullCalendar and iCal.js for ICS feeds -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ical.js/1.5.0/ical.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
@@ -59,7 +61,7 @@
     </div>
 
     <!-- Firebase Auth & DB Logic script -->
-    <script src="firebase-app.js?v=11"></script>
+    <script src="firebase-app.js?v=13"></script>
 
     <div class="app-container" id="mainAppContainer" style="display: none;">
         <!-- Sidebar / Navigation -->
@@ -69,7 +71,7 @@
                     <i data-lucide="wallet"></i>
                     <span>FinDash</span>
                 </div>
-                <div class="app-version">v2.41 by Tu13u1E+</div>
+                <div class="app-version">v5.118 by Tu13u1E+</div>
             </div>
             <nav class="nav-menu">
                 <a href="#" class="nav-item active" data-view="view-dashboard"><i data-lucide="layout-dashboard"></i> Dashboard</a>
@@ -87,7 +89,6 @@
                     <span id="todoBadge" class="nav-badge" style="display: none;">0</span>
                 </a>
                 <a href="#" class="nav-item" data-view="view-schedule"><i data-lucide="calendar-days"></i> Life Schedule</a>
-                <a href="#" class="nav-item" data-view="view-settings"><i data-lucide="database"></i> Data & Settings</a>
             </nav>
             <div class="user-profile" style="justify-content: space-between;">
                 <div style="display: flex; align-items: center; gap: 12px; overflow: hidden;">
@@ -103,9 +104,14 @@
                         <span class="user-email" style="overflow: hidden; text-overflow: ellipsis;">General Physician</span>
                     </div>
                 </div>
-                <button class="icon-btn theme-toggle" id="themeToggleBtn" title="Toggle Theme" style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; background-color: var(--glass-bg); border: 1px solid var(--border-color); border-radius: var(--radius-md); color: var(--text-secondary); cursor: pointer; flex-shrink: 0;">
-                    <i data-lucide="sun"></i>
-                </button>
+                <div style="display: flex; gap: 6px; flex-shrink: 0;">
+                    <button class="nav-item" data-view="view-settings" title="Data & Settings" style="width: 32px !important; height: 32px !important; padding: 0 !important; display: flex; align-items: center; justify-content: center; background-color: var(--glass-bg); border: 1px solid var(--border-color); border-radius: var(--radius-md); color: var(--text-secondary); cursor: pointer; flex-shrink: 0; min-height: unset; margin: 0; text-decoration: none;">
+                        <i data-lucide="database" style="width: 16px; height: 16px;"></i>
+                    </button>
+                    <button class="icon-btn theme-toggle" id="themeToggleBtn" title="Toggle Theme" style="width: 32px !important; height: 32px !important; padding: 0 !important; display: flex; align-items: center; justify-content: center; background-color: var(--glass-bg); border: 1px solid var(--border-color); border-radius: var(--radius-md); color: var(--text-secondary); cursor: pointer; flex-shrink: 0; min-height: unset; margin: 0; text-decoration: none;">
+                        <i data-lucide="sun" style="width: 16px; height: 16px;"></i>
+                    </button>
+                </div>
             </div>
         </aside>
 
@@ -250,6 +256,8 @@
                     </div>
                 </div>
             </section>
+
+
 
             <!-- Transactions & Fixed Expenses Section -->
             <section class="lists-section">
@@ -549,9 +557,34 @@
                 </div>
             </header>
             
-            <section class="section-container" style="flex: 1; display: flex; flex-direction: column; min-height: 0;">
-                <div class="card" style="flex: 1; display: flex; flex-direction: column; min-height: 500px; padding: 20px;">
-                    <div id="calendar" style="flex: 1;"></div>
+            <section class="section-container" style="display: flex; flex-direction: column; min-height: 0; flex: 1 1 0%;">
+                
+                <div class="card" style="margin-bottom: 12px; flex-shrink: 0;">
+                    <div class="card-header" style="padding-bottom: 8px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+                        <h3 class="card-title" style="display: flex; align-items: center; gap: 8px;">
+                            <i data-lucide="stamp"></i> Stamp Mode (Activity Templates)
+                        </h3>
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <button class="btn btn-secondary btn-sm" onclick="openAddStampModal()">
+                                <i data-lucide="plus"></i> Add Stamp
+                            </button>
+                            <button id="exitStampModeBtn" class="btn btn-primary btn-sm" onclick="exitStampMode()" style="display: none; background-color: var(--primary-color);">
+                                <i data-lucide="check"></i> Done Stamping
+                            </button>
+                            <button class="btn btn-primary btn-sm" onclick="if(window.syncDataToCloud) window.syncDataToCloud(null, null, true);" style="background: var(--success); border-color: var(--success);">
+                                <i data-lucide="cloud-upload"></i> Save Changes
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-content" style="padding-top: 12px;">
+                        <div id="stampList" style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            <!-- Stamp buttons injected here -->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card" style="display: flex; flex-direction: column; min-height: 0; padding: 12px 20px 20px 20px; flex: 1 1 0%;">
+                    <div id="calendar" style="flex: 1 1 0%; min-height: 0;"></div>
                 </div>
             </section>
         
@@ -560,7 +593,7 @@
         <main class="main-content view-section" id="view-settings">
             <div class="header-title">
     <h1>Data & Settings</h1>
-    <p class="subtitle">Manage your local data, backup, and restore.</p>
+    <p class="subtitle" style="margin-bottom: 24px;">Manage your local data, backup, and restore.</p>
 </div>
 
 <div class="lists-section" style="grid-template-columns: 1fr 1fr; gap: 24px;">
@@ -607,6 +640,47 @@
             
             <button class="btn btn-success" onclick="exportTransactionsCSV()" style="display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%;">
                 <i data-lucide="table"></i> Export Transactions (CSV)
+            </button>
+        </div>
+    </div>
+
+    <!-- AI Integrations -->
+    <div class="card list-card" style="grid-column: 1 / -1;">
+        <div class="card-header">
+            <h3 style="display: flex; align-items: center; gap: 8px;">
+                <i data-lucide="bot"></i> AI Integrations (Gemini API) <span style="font-size: 14px; font-weight: normal; color: var(--text-secondary);">- Powered by Gemini 3.5 Flash</span>
+            </h3>
+        </div>
+        <div class="card-content" style="display: flex; flex-direction: column; gap: 16px;">
+            <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 8px;">
+                Enter your Google Gemini API Key to enable AI-powered features, such as smart bank statement analysis. Your key is saved locally in this browser.
+            </p>
+            <div class="form-group" style="display: flex; gap: 12px; margin: 0;">
+                <input type="password" id="geminiApiKeyInput" class="form-input" placeholder="AIzaSy..." style="flex: 1;">
+                <button class="btn btn-primary" onclick="saveGeminiApiKey()">Save Key</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Import from Bank (CSV/PDF) -->
+    <div class="card list-card" style="grid-column: 1 / -1;">
+        <div class="card-header">
+            <h3 class="card-title" style="display: flex; align-items: center; gap: 8px;">
+                <i data-lucide="building-2"></i> Import from Bank Statement (CSV / Image)
+            </h3>
+        </div>
+        <div class="card-content" style="display: flex; flex-direction: column; gap: 16px;">
+            <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 8px;">
+                Upload a CSV or an Image (screenshot) of your statement from your bank app. The AI will automatically read your transactions and import them.
+            </p>
+            
+            <input type="file" id="importBankCsvFile" class="form-input" accept=".csv, image/*" multiple style="display: none;" onchange="handleBankCsvImport(event)">
+            <button class="btn btn-warning" onclick="document.getElementById('importBankCsvFile').click()" style="display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%;">
+                <i data-lucide="upload"></i> Upload Bank Statement (CSV or Image)
+            </button>
+            
+            <button class="btn" onclick="clearAIImportedData()" style="display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; margin-top: 8px; background-color: #ef4444; color: white; border: none;">
+                <i data-lucide="trash-2"></i> Clear Previously Imported AI Data
             </button>
         </div>
     </div>
@@ -903,6 +977,32 @@
     </main>
     </div>
 
+    <!-- Add Stamp Modal -->
+    <div class="modal-overlay" id="addStampModal">
+        <div class="modal" style="max-width: 400px;">
+            <div class="modal-header">
+                <h3>Add New Stamp</h3>
+                <button class="icon-btn close-modal" onclick="document.getElementById('addStampModal').classList.remove('active')"><i data-lucide="x"></i></button>
+            </div>
+            <div class="modal-body">
+                <form id="addStampForm">
+                    <div class="form-group">
+                        <label for="stampName">Activity Name</label>
+                        <input type="text" id="stampName" class="form-input" placeholder="e.g. HBO, On-call, Off" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="stampColor">Color</label>
+                        <input type="color" id="stampColor" class="form-input" value="#4285F4" style="height: 40px; padding: 4px;">
+                    </div>
+                    <div class="form-actions" style="margin-top: 24px; display: flex; gap: 12px; justify-content: flex-end;">
+                        <button type="button" class="btn btn-secondary" onclick="document.getElementById('addStampModal').classList.remove('active')">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Save Stamp</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <!-- Calendar Links Modal -->
     <div class="modal-overlay" id="calendarLinksModal">
         <div class="modal">
@@ -1040,7 +1140,42 @@
         </div>
     </div>
 
-    <!-- Add Transaction Modal -->
+    <!-- CSV Import Preview Modal -->
+    <div class="modal-overlay" id="csvPreviewModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Preview Bank Transactions</h3>
+                <button class="btn btn-icon" onclick="document.getElementById('csvPreviewModal').classList.remove('active')"><i data-lucide="x"></i></button>
+            </div>
+            <div class="modal-body">
+                <p id="csvPreviewStatus" style="font-size: 14px; margin-bottom: 12px; color: var(--text-secondary);"></p>
+                <div id="csvProgressBarContainer" style="display: none; width: 100%; background-color: #e2e8f0; border-radius: 8px; overflow: hidden; margin-bottom: 16px; height: 8px;">
+                    <div id="csvProgressBar" style="width: 0%; height: 100%; background-color: #3b82f6; transition: width 0.1s linear;"></div>
+                </div>
+                <div class="table-container" style="max-height: 400px; overflow-y: auto; margin-bottom: 16px;">
+                    <table class="table" style="width: 100%; text-align: left; font-size: 14px;">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Type</th>
+                                <th>Amount</th>
+                                <th>Note</th>
+                            </tr>
+                        </thead>
+                        <tbody id="csvPreviewTableBody">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+                <div class="form-group" style="display: flex; gap: 12px;">
+                    <button class="btn btn-secondary" onclick="document.getElementById('csvPreviewModal').classList.remove('active')" style="flex: 1;">Cancel</button>
+                    <button class="btn btn-primary" id="btnConfirmCsvImport" style="flex: 1;">Import Transactions</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Transaction Modal -->
     <div class="modal-overlay" id="transactionModal">
         <div class="modal">
             <div class="modal-header">

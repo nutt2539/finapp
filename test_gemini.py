@@ -1,0 +1,1 @@
+import requests, sys, json; print(requests.post(f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key={sys.argv[1]}", json={"contents": [{"parts": [{"text": "Hello"}]}]}).json())

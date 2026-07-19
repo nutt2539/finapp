@@ -212,6 +212,16 @@ body {
 .view-section.active {
     display: block;
 }
+#view-schedule.active {
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 64px);
+}
+@media (max-width: 768px) {
+    #view-schedule.active {
+        height: calc(100vh - 120px);
+    }
+}
 
 .main-content {
     flex-grow: 1;
