@@ -759,40 +759,69 @@ function updateDailyInsight(netBalance, totalIncome, totalExpense) {
     currentInsights = [];
     
     if (netBalance < 0) {
-        currentInsights.push(`⚠️ <b>ระวัง!</b> เดือนนี้ยอดใช้จ่ายเกินรายรับไปแล้ว (ติดลบ ${formatCurrency(Math.abs(netBalance))}) ลองตรวจสอบและคุมงบอีกนิดนะครับ`);
+        currentInsights.push({ text: `⚠️ <b>ระวัง!</b> เดือนนี้ยอดใช้จ่ายเกินรายรับไปแล้ว (ติดลบ ${formatCurrency(Math.abs(netBalance))}) ลองตรวจสอบและคุมงบอีกนิดนะครับ`, mood: 'warning' });
     }
     if (totalExpense > 0 && totalExpense < totalIncome * 0.5 && currentDay >= 15) {
-        currentInsights.push(`🌟 <b>ยอดเยี่ยมมาก!</b> ผ่านมาครึ่งเดือนแล้ว คุณยังคุมค่าใช้จ่ายได้ต่ำกว่า 50% ของรายรับ เตรียมเก็บเงินก้อนใหญ่เข้าเป้าหมายได้เลยครับ`);
+        currentInsights.push({ text: `🌟 <b>ยอดเยี่ยมมาก!</b> ผ่านมาครึ่งเดือนแล้ว คุณยังคุมค่าใช้จ่ายได้ต่ำกว่า 50% ของรายรับ เตรียมเก็บเงินก้อนใหญ่เข้าเป้าหมายได้เลยครับ`, mood: 'happy' });
     }
     if (expectedIncomes.length > 0) {
         let totalExtra = expectedIncomes.reduce((sum, item) => sum + parseFloat(item.amount), 0);
-        currentInsights.push(`🚀 <b>รอรับทรัพย์!</b> เดือนนี้คุณมีรายได้เสริมรออยู่ประมาณ ${formatCurrency(totalExtra)} สู้ๆ กับโปรเจกต์งานนะครับ`);
+        currentInsights.push({ text: `🚀 <b>รอรับทรัพย์!</b> เดือนนี้คุณมีรายได้เสริมรออยู่ประมาณ ${formatCurrency(totalExtra)} สู้ๆ กับโปรเจกต์งานนะครับ`, mood: 'excited' });
     }
     if (currentDay >= 25 && netBalance > 0) {
-        currentInsights.push(`📅 <b>ใกล้สิ้นเดือนแล้ว!</b> คุณมียอดเงินคงเหลือ ${formatCurrency(netBalance)} สามารถโยกไปเข้าแผน DCA หรือ Sinking Funds ได้เลยนะ`);
+        currentInsights.push({ text: `📅 <b>ใกล้สิ้นเดือนแล้ว!</b> คุณมียอดเงินคงเหลือ ${formatCurrency(netBalance)} สามารถโยกไปเข้าแผน DCA หรือ Sinking Funds ได้เลยนะ`, mood: 'idea' });
     }
     
-    currentInsights.push(`👋 <b>สวัสดีคุณนัท!</b> วันนี้เป็นวันดีในการจัดสรรเงิน Safe-to-Save เพื่อเป้าหมายของคุณครับ ✌️`);
-    currentInsights.push(`💡 <b>เคล็ดลับ:</b> การจดบันทึกรายรับรายจ่ายทุกวัน ช่วยลดรายจ่ายที่ไม่จำเป็นได้ถึง 20% เลยนะ`);
-    currentInsights.push(`🎯 <b>เป้าหมายมีไว้พุ่งชน!</b> อย่าลืมเช็ค To-Do List ของคุณและเคลียร์มันให้เสร็จนะครับ`);
-    currentInsights.push(`📈 <b>พลังของเวลา:</b> เงิน ${formatCurrency(1000)} ที่ออมหรือลงทุนตั้งแต่วันนี้ จะเติบโตอย่างน่าทึ่งด้วยดอกเบี้ยทบต้น!`);
+    currentInsights.push({ text: `👋 <b>สวัสดีคุณนัท!</b> วันนี้เป็นวันดีในการจัดสรรเงิน Safe-to-Save เพื่อเป้าหมายของคุณครับ ✌️`, mood: 'calm' });
+    currentInsights.push({ text: `💡 <b>เคล็ดลับ:</b> การจดบันทึกรายรับรายจ่ายทุกวัน ช่วยลดรายจ่ายที่ไม่จำเป็นได้ถึง 20% เลยนะ`, mood: 'idea' });
+    currentInsights.push({ text: `🎯 <b>เป้าหมายมีไว้พุ่งชน!</b> อย่าลืมเช็ค To-Do List ของคุณและเคลียร์มันให้เสร็จนะครับ`, mood: 'focus' });
+    currentInsights.push({ text: `📈 <b>พลังของเวลา:</b> เงิน ${formatCurrency(1000)} ที่ออมหรือลงทุนตั้งแต่วันนี้ จะเติบโตอย่างน่าทึ่งด้วยดอกเบี้ยทบต้น!`, mood: 'happy' });
     
     displayRandomInsight();
 }
 
 function displayRandomInsight() {
     const insightEl = document.getElementById('dailyInsightText');
+    const mascotImg = document.getElementById('insightMascot');
+    const mascotContainer = document.getElementById('insightMascotContainer');
+    
     if (!insightEl || currentInsights.length === 0) return;
     
     // Pick random and avoid repeating the exact same one if possible
-    let newText = insightEl.innerHTML;
+    let newInsight = currentInsights[0];
     let attempts = 0;
-    while(newText === insightEl.innerHTML && attempts < 5 && currentInsights.length > 1) {
+    while(newInsight.text === insightEl.innerHTML && attempts < 5 && currentInsights.length > 1) {
         const randomIndex = Math.floor(Math.random() * currentInsights.length);
-        newText = currentInsights[randomIndex];
+        newInsight = currentInsights[randomIndex];
         attempts++;
     }
-    insightEl.innerHTML = newText;
+    
+    // Animate mascot out
+    if (mascotContainer) {
+        mascotContainer.style.transform = 'scale(0)';
+        mascotContainer.style.opacity = '0';
+    }
+    
+    setTimeout(() => {
+        insightEl.innerHTML = newInsight.text;
+        
+        // Setup new mascot image (fallback to calm if focus doesn't exist etc, though we only have warning, happy, excited, idea, calm)
+        if (mascotImg && mascotContainer) {
+            let moodImg = 'mascot_calm.png';
+            if (newInsight.mood === 'warning') moodImg = 'mascot_warning.png';
+            else if (newInsight.mood === 'happy') moodImg = 'mascot_happy.png';
+            else if (newInsight.mood === 'excited') moodImg = 'mascot_excited.png';
+            else if (newInsight.mood === 'idea' || newInsight.mood === 'focus') moodImg = 'mascot_idea.png';
+            
+            mascotImg.src = `assets/${moodImg}`;
+            
+            // Animate mascot in
+            mascotImg.onload = () => {
+                mascotContainer.style.transform = 'scale(1)';
+                mascotContainer.style.opacity = '1';
+            };
+        }
+    }, 200);
 }
 
 function renderTransactionList() {

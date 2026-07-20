@@ -1337,3 +1337,13 @@ html.theme-transition *:after {
         text-align: left;
     }
 }
+
+@keyframes mascotBobbing {
+    0% { transform: translateY(0) scale(1); }
+    50% { transform: translateY(-8px) scale(1.02) rotate(2deg); }
+    100% { transform: translateY(0) scale(1); }
+}
+
+.mascot-animated {
+    animation: mascotBobbing 3s ease-in-out infinite;
+}
