@@ -3888,75 +3888,108 @@ if (logoContainer && navMenu) {
 }
 
 // --- Lucky Colors Widget ---
+const S1 = [{name: 'ชมพู', hex: '#ff99cc'}, {name: 'แดง', hex: '#ef4444'}, {name: 'ส้ม', hex: '#f97316'}];
+const S2 = [{name: 'เขียวอ่อน', hex: '#86efac'}, {name: 'เขียว', hex: '#22c55e'}, {name: 'เขียวเข้ม', hex: '#15803d'}];
+const S3 = [{name: 'ดำ', hex: '#171717'}, {name: 'เทาดำ', hex: '#525252'}, {name: 'ม่วง', hex: '#a855f7'}];
+const S4 = [{name: 'ส้ม', hex: '#f97316'}, {name: 'ส้มเข้ม', hex: '#c2410c'}, {name: 'ครีม', hex: '#fed7aa'}];
+const S5 = [{name: 'น้ำเงิน', hex: '#1e3a8a'}, {name: 'ฟ้า', hex: '#3b82f6'}, {name: 'ฟ้าทะเล', hex: '#06b6d4'}];
+const S6 = [{name: 'เหลือง', hex: '#fde047'}, {name: 'เหลืองอ่อน', hex: '#fef9c3'}, {name: 'ขาว', hex: '#ffffff'}];
+const S7 = [{name: 'น้ำตาลอ่อน', hex: '#b45309'}, {name: 'น้ำตาล', hex: '#78350f'}, {name: 'น้ำตาลเข้ม', hex: '#451a03'}];
+const S8 = [{name: 'เลือดหมู', hex: '#9f1239'}, {name: 'แดง', hex: '#ef4444'}, {name: 'ชมพู', hex: '#f472b6'}];
+const S9 = [{name: 'ชมพูอ่อน', hex: '#fbcfe8'}, {name: 'ชมพู', hex: '#f472b6'}];
+const S10 = [{name: 'เลือดหมู', hex: '#9f1239'}, {name: 'แดง', hex: '#ef4444'}, {name: 'เทาอ่อน', hex: '#e5e5e5'}];
+const S11 = [{name: 'เลือดหมู', hex: '#9f1239'}, {name: 'แดง', hex: '#ef4444'}];
+
 const LUCKY_COLORS = {
     0: { // Sunday
         name: 'อาทิตย์',
         categories: [
-            { name: 'งานปัง', colors: [{name: 'ชมพู', hex: '#f472b6'}, {name: 'โอรส', hex: '#fb923c'}] },
-            { name: 'โชคดี', colors: [{name: 'เขียว', hex: '#4ade80'}, {name: 'มิ้นท์', hex: '#5eead4'}] },
-            { name: 'ร่ำรวย', colors: [{name: 'ดำ', hex: '#27272a'}, {name: 'ม่วง', hex: '#a855f7'}] },
-            { name: 'เมตตา', colors: [{name: 'เทา', hex: '#9ca3af'}, {name: 'ทอง', hex: '#eab308'}] },
-            { name: 'ฉุดดวง', colors: [{name: 'ฟ้า', hex: '#7dd3fc'}, {name: 'น้ำเงิน', hex: '#3b82f6'}] }
+            { name: 'การงาน', colors: S1 },
+            { name: 'การเงิน', colors: S3 },
+            { name: 'ความรัก', colors: S2 },
+            { name: 'อุปถัมภ์', colors: S7 },
+            { name: 'สุขภาพ', colors: S6 },
+            { name: 'โชคลาภ', colors: S8 },
+            { name: 'การเดินทาง', colors: S4 },
+            { name: 'สีอัปมงคล', colors: S5 }
         ]
     },
     1: { // Monday
         name: 'จันทร์',
         categories: [
-            { name: 'งานปัง', colors: [{name: 'เขียว', hex: '#4ade80'}, {name: 'ใบเตย', hex: '#86efac'}] },
-            { name: 'โชคดี', colors: [{name: 'ม่วง', hex: '#a855f7'}, {name: 'เทาดำ', hex: '#4b5563'}] },
-            { name: 'ร่ำรวย', colors: [{name: 'ส้ม', hex: '#f97316'}, {name: 'น้ำตาล', hex: '#92400e'}] },
-            { name: 'เมตตา', colors: [{name: 'ฟ้า', hex: '#7dd3fc'}, {name: 'น้ำเงิน', hex: '#3b82f6'}] },
-            { name: 'ฉุดดวง', colors: [{name: 'แดง', hex: '#ef4444'}, {name: 'เลือดหมู', hex: '#991b1b'}] }
+            { name: 'การงาน', colors: S2 },
+            { name: 'การเงิน', colors: S4 },
+            { name: 'ความรัก', colors: S3 },
+            { name: 'อุปถัมภ์', colors: S5 },
+            { name: 'สุขภาพ', colors: S9 },
+            { name: 'โชคลาภ', colors: S6 },
+            { name: 'การเดินทาง', colors: S7 },
+            { name: 'สีอัปมงคล', colors: S11 }
         ]
     },
     2: { // Tuesday
         name: 'อังคาร',
         categories: [
-            { name: 'งานปัง', colors: [{name: 'ม่วง', hex: '#a855f7'}, {name: 'เทาดำ', hex: '#4b5563'}] },
-            { name: 'โชคดี', colors: [{name: 'ส้ม', hex: '#f97316'}, {name: 'น้ำตาล', hex: '#92400e'}] },
-            { name: 'ร่ำรวย', colors: [{name: 'ดำ', hex: '#27272a'}, {name: 'เทา', hex: '#9ca3af'}] },
-            { name: 'เมตตา', colors: [{name: 'แดง', hex: '#ef4444'}, {name: 'ชมพู', hex: '#f472b6'}] },
-            { name: 'ฉุดดวง', colors: [{name: 'ขาว', hex: '#f8fafc'}, {name: 'เหลือง', hex: '#fde047'}] }
+            { name: 'การงาน', colors: S3 },
+            { name: 'การเงิน', colors: S7 },
+            { name: 'ความรัก', colors: S4 },
+            { name: 'อุปถัมภ์', colors: S8 },
+            { name: 'สุขภาพ', colors: S2 },
+            { name: 'โชคลาภ', colors: S9 },
+            { name: 'การเดินทาง', colors: S5 },
+            { name: 'สีอัปมงคล', colors: S6 }
         ]
     },
     3: { // Wednesday
         name: 'พุธ',
         categories: [
-            { name: 'งานปัง', colors: [{name: 'ส้ม', hex: '#f97316'}, {name: 'น้ำตาล', hex: '#92400e'}] },
-            { name: 'โชคดี', colors: [{name: 'เทา', hex: '#9ca3af'}, {name: 'ทอง', hex: '#eab308'}] },
-            { name: 'ร่ำรวย', colors: [{name: 'ฟ้า', hex: '#7dd3fc'}, {name: 'น้ำเงิน', hex: '#3b82f6'}] },
-            { name: 'เมตตา', colors: [{name: 'เหลือง', hex: '#fde047'}, {name: 'ขาว', hex: '#f8fafc'}] },
-            { name: 'ฉุดดวง', colors: [{name: 'ชมพู', hex: '#f472b6'}, {name: 'บานเย็น', hex: '#d946ef'}] }
+            { name: 'การงาน', colors: S4 },
+            { name: 'การเงิน', colors: S5 },
+            { name: 'ความรัก', colors: S7 },
+            { name: 'อุปถัมภ์', colors: S6 },
+            { name: 'สุขภาพ', colors: S3 },
+            { name: 'โชคลาภ', colors: S2 },
+            { name: 'การเดินทาง', colors: S10 },
+            { name: 'สีอัปมงคล', colors: S9 }
         ]
     },
     4: { // Thursday
         name: 'พฤหัสบดี',
         categories: [
-            { name: 'งานปัง', colors: [{name: 'ฟ้า', hex: '#7dd3fc'}, {name: 'น้ำเงิน', hex: '#3b82f6'}] },
-            { name: 'โชคดี', colors: [{name: 'แดง', hex: '#ef4444'}, {name: 'เลือดหมู', hex: '#991b1b'}] },
-            { name: 'ร่ำรวย', colors: [{name: 'เหลือง', hex: '#fde047'}, {name: 'ครีม', hex: '#fef3c7'}] },
-            { name: 'เมตตา', colors: [{name: 'เขียว', hex: '#4ade80'}, {name: 'ใบเตย', hex: '#86efac'}] },
-            { name: 'ฉุดดวง', colors: [{name: 'ดำ', hex: '#27272a'}, {name: 'เทาดำ', hex: '#4b5563'}] }
+            { name: 'การงาน', colors: S5 },
+            { name: 'การเงิน', colors: S6 },
+            { name: 'ความรัก', colors: S8 },
+            { name: 'อุปถัมภ์', colors: S2 },
+            { name: 'สุขภาพ', colors: S7 },
+            { name: 'โชคลาภ', colors: S4 },
+            { name: 'การเดินทาง', colors: S9 },
+            { name: 'สีอัปมงคล', colors: S3 }
         ]
     },
     5: { // Friday
         name: 'ศุกร์',
         categories: [
-            { name: 'งานปัง', colors: [{name: 'เหลือง', hex: '#fde047'}, {name: 'ขาว', hex: '#f8fafc'}] },
-            { name: 'โชคดี', colors: [{name: 'ชมพู', hex: '#f472b6'}, {name: 'บานเย็น', hex: '#d946ef'}] },
-            { name: 'ร่ำรวย', colors: [{name: 'เขียว', hex: '#4ade80'}, {name: 'มิ้นท์', hex: '#5eead4'}] },
-            { name: 'เมตตา', colors: [{name: 'ส้ม', hex: '#f97316'}, {name: 'น้ำตาล', hex: '#92400e'}] },
-            { name: 'ฉุดดวง', colors: [{name: 'เทา', hex: '#9ca3af'}, {name: 'ทอง', hex: '#eab308'}] }
+            { name: 'การงาน', colors: S6 },
+            { name: 'การเงิน', colors: S2 },
+            { name: 'ความรัก', colors: S9 },
+            { name: 'อุปถัมภ์', colors: S4 },
+            { name: 'สุขภาพ', colors: S8 },
+            { name: 'โชคลาภ', colors: S5 },
+            { name: 'การเดินทาง', colors: S3 },
+            { name: 'สีอัปมงคล', colors: S7 }
         ]
     },
     6: { // Saturday
         name: 'เสาร์',
         categories: [
-            { name: 'งานปัง', colors: [{name: 'น้ำตาลเข้ม', hex: '#451a03'}, {name: 'เทา', hex: '#9ca3af'}] },
-            { name: 'โชคดี', colors: [{name: 'ฟ้า', hex: '#7dd3fc'}, {name: 'น้ำเงิน', hex: '#3b82f6'}] },
-            { name: 'ร่ำรวย', colors: [{name: 'แดง', hex: '#ef4444'}, {name: 'ชมพู', hex: '#f472b6'}] },
-            { name: 'เมตตา', colors: [{name: 'ชมพู', hex: '#f472b6'}, {name: 'โอรส', hex: '#fb923c'}] },
-            { name: 'ฉุดดวง', colors: [{name: 'เขียว', hex: '#4ade80'}, {name: 'เขียวเข้ม', hex: '#15803d'}] }
+            { name: 'การงาน', colors: S7 },
+            { name: 'การเงิน', colors: S8 },
+            { name: 'ความรัก', colors: S5 },
+            { name: 'อุปถัมภ์', colors: S9 },
+            { name: 'สุขภาพ', colors: S4 },
+            { name: 'โชคลาภ', colors: S3 },
+            { name: 'การเดินทาง', colors: S6 },
+            { name: 'สีอัปมงคล', colors: S2 }
         ]
     }
 };
@@ -3992,21 +4025,25 @@ function renderLuckyColors() {
     catName.style.cssText = 'font-size: 13px; color: var(--text-primary); margin-bottom: 8px; font-weight: 500; text-align: center;';
     
     const colorsWrapper = document.createElement('div');
-    colorsWrapper.style.cssText = 'display: flex; gap: 8px; justify-content: center;';
+    colorsWrapper.style.cssText = 'display: flex; justify-content: center; align-items: center; padding-left: 8px;'; // Add padding to offset the last circle's visual weight if needed, or just let it center. Actually just flex center is fine.
     
-    cat.colors.forEach(color => {
+    cat.colors.forEach((color, index) => {
         const colorDot = document.createElement('div');
+        colorDot.className = 'color-circle';
         colorDot.title = color.name;
         colorDot.style.cssText = `
-            width: 28px;
-            height: 28px;
+            width: 24px;
+            height: 24px;
             border-radius: 50%;
             background-color: ${color.hex};
-            border: 1px solid rgba(0,0,0,0.1);
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border: 2px solid var(--bg-card);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+            ${index > 0 ? 'margin-left: -10px;' : ''}
+            position: relative;
+            z-index: ${index};
         `;
         if (color.hex === '#f8fafc' || color.hex === '#ffffff' || color.hex === '#fef3c7') {
-            colorDot.style.border = '1px solid rgba(0,0,0,0.2)';
+            colorDot.style.border = '2px solid rgba(0,0,0,0.1)';
         }
         colorsWrapper.appendChild(colorDot);
     });
