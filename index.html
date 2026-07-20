@@ -29,7 +29,7 @@
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
     <!-- Styles -->
-    <link rel="stylesheet" href="style.css?v=14">
+    <link rel="stylesheet" href="style.css?v=16">
     <!-- FullCalendar and iCal.js for ICS feeds -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ical.js/1.5.0/ical.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
@@ -42,7 +42,7 @@
 </head>
 <body>
     <!-- Login Overlay -->
-    <div id="loginOverlay" style="position: fixed; inset: 0; background-color: var(--bg-primary); z-index: 9999; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 20px;">
+    <div id="loginOverlay" style="position: fixed; inset: 0; background-color: var(--glass-bg); backdrop-filter: blur(32px); -webkit-backdrop-filter: blur(32px); z-index: 9999; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 20px;">
         <div class="logo" style="font-size: 32px; margin-bottom: 12px;">
             <i data-lucide="wallet" style="width: 40px; height: 40px;"></i>
             <span>FinDash Cloud</span>
@@ -71,7 +71,7 @@
                     <i data-lucide="wallet"></i>
                     <span>FinDash</span>
                 </div>
-                <div class="app-version">v5.118 by Tu13u1E+</div>
+                <div class="app-version">v5.143 by Tu13u1E+</div>
             </div>
             <nav class="nav-menu">
                 <a href="#" class="nav-item active" data-view="view-dashboard"><i data-lucide="layout-dashboard"></i> Dashboard</a>
@@ -91,13 +91,9 @@
                 <a href="#" class="nav-item" data-view="view-schedule"><i data-lucide="calendar-days"></i> Life Schedule</a>
             </nav>
             <div class="user-profile" style="justify-content: space-between;">
-                <div style="display: flex; align-items: center; gap: 12px; overflow: hidden;">
-                    <div style="position: relative; cursor: pointer; flex-shrink: 0;" id="avatarContainer" title="Change Profile Picture">
-                        <img src="./kururu_avatar.jpg" alt="Profile" class="avatar" id="userAvatarImg">
-                        <div class="avatar-overlay">
-                            <i data-lucide="camera" style="width: 16px; height: 16px;"></i>
-                        </div>
-                        <input type="file" id="avatarInput" accept="image/*" style="display: none;">
+                <div style="display: flex; align-items: center; gap: 12px; overflow: hidden; cursor: pointer; flex: 1;" onclick="document.getElementById('profileSettingsModal').classList.add('active')" title="Profile & Settings">
+                    <div style="position: relative; flex-shrink: 0;">
+                        <img src="./kururu_avatar.jpg" alt="Profile" class="avatar" id="sidebarAvatarImg">
                     </div>
                     <div class="user-info" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                         <span class="user-name" style="overflow: hidden; text-overflow: ellipsis;">Nutt Prahuangmas</span>
@@ -105,9 +101,6 @@
                     </div>
                 </div>
                 <div style="display: flex; gap: 6px; flex-shrink: 0;">
-                    <button class="nav-item" data-view="view-settings" title="Data & Settings" style="width: 32px !important; height: 32px !important; padding: 0 !important; display: flex; align-items: center; justify-content: center; background-color: var(--glass-bg); border: 1px solid var(--border-color); border-radius: var(--radius-md); color: var(--text-secondary); cursor: pointer; flex-shrink: 0; min-height: unset; margin: 0; text-decoration: none;">
-                        <i data-lucide="database" style="width: 16px; height: 16px;"></i>
-                    </button>
                     <button class="icon-btn theme-toggle" id="themeToggleBtn" title="Toggle Theme" style="width: 32px !important; height: 32px !important; padding: 0 !important; display: flex; align-items: center; justify-content: center; background-color: var(--glass-bg); border: 1px solid var(--border-color); border-radius: var(--radius-md); color: var(--text-secondary); cursor: pointer; flex-shrink: 0; min-height: unset; margin: 0; text-decoration: none;">
                         <i data-lucide="sun" style="width: 16px; height: 16px;"></i>
                     </button>
@@ -140,8 +133,8 @@
                 </div>
             </header>
 
-            <!-- Smart Daily Insights -->
-            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 24px;">
+            <!-- Smart Daily Insights & Top Widgets -->
+            <div class="top-widgets-grid">
                 <!-- Smart Daily Insights -->
                 <div class="card bg-gradient-insight insight-card" style="margin-bottom: 0; position: relative; overflow: hidden; height: 100%;">
                     <div style="display: flex; gap: 16px; align-items: center; position: relative; z-index: 2;">
@@ -151,9 +144,14 @@
                         <div style="flex-grow: 1;">
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
                                 <h3 style="color: white; font-size: 16px; margin: 0;">Daily Insights</h3>
-                                <button id="refreshInsightBtn" style="background: none; border: none; color: rgba(255,255,255,0.7); cursor: pointer; display: flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 50%; transition: var(--transition);">
-                                    <i data-lucide="refresh-cw" style="width: 16px; height: 16px;"></i>
-                                </button>
+                                <div style="display: flex; gap: 8px;">
+                                    <button id="refreshInsightBtn" style="background: none; border: none; color: rgba(255,255,255,0.7); cursor: pointer; display: flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 50%; transition: var(--transition);" title="Refresh Insight">
+                                        <i data-lucide="refresh-cw" style="width: 16px; height: 16px;"></i>
+                                    </button>
+                                    <button onclick="openInsightBgModal()" style="background: none; border: none; color: rgba(255,255,255,0.7); cursor: pointer; display: flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 50%; transition: var(--transition);" title="Personalize Insight Background">
+                                        <i data-lucide="image" style="width: 16px; height: 16px;"></i>
+                                    </button>
+                                </div>
                             </div>
                             <p id="dailyInsightText" style="color: rgba(255,255,255,0.9); font-size: 14px; margin: 0; line-height: 1.5;">กำลังวิเคราะห์ข้อมูล...</p>
                         </div>
@@ -163,8 +161,26 @@
                     <div style="position: absolute; right: 40px; bottom: -30px; width: 60px; height: 60px; background: rgba(255,255,255,0.1); border-radius: 50%; z-index: 1;"></div>
                 </div>
 
+                <!-- Lucky Colors Widget -->
+                <div class="card lucky-colors-card" style="background: var(--glass-bg); display: flex; flex-direction: column; justify-content: center; align-items: center; aspect-ratio: 1 / 1; border-radius: var(--radius-lg); padding: 12px; margin-bottom: 0; border: 1px solid var(--border-color); overflow: hidden; position: relative;">
+                    <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 8px;">
+                        <i data-lucide="palette" style="width: 14px; height: 14px; color: #f472b6;"></i>
+                        <h3 style="font-size: 13px; margin: 0; color: var(--text-primary); font-weight: 600;">สีมงคล <span id="luckyDayName" style="color: var(--text-secondary); font-weight: normal;"></span></h3>
+                    </div>
+                    
+                    <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+                        <button class="icon-btn" onclick="prevLuckyCategory()" style="width: 28px; height: 28px; min-width: 28px; padding: 0; display: flex; align-items: center; justify-content: center;"><i data-lucide="chevron-left" style="width: 18px; height: 18px;"></i></button>
+                        
+                        <div id="luckyColorsContainer" style="display: flex; flex-direction: column; align-items: center; min-height: 56px; justify-content: center; flex-grow: 1;">
+                            <!-- JS injected content -->
+                        </div>
+                        
+                        <button class="icon-btn" onclick="nextLuckyCategory()" style="width: 28px; height: 28px; min-width: 28px; padding: 0; display: flex; align-items: center; justify-content: center;"><i data-lucide="chevron-right" style="width: 18px; height: 18px;"></i></button>
+                    </div>
+                </div>
+
                 <!-- Weather Widget -->
-                <div class="card weather-card" style="background: linear-gradient(135deg, #74ebd5 0%, #9face6 100%); color: white; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; height: 100%; border-radius: var(--radius-lg); padding: 16px; margin-bottom: 0;">
+                <div class="card weather-card" style="background: linear-gradient(135deg, #74ebd5 0%, #9face6 100%); color: white; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; aspect-ratio: 1 / 1; border-radius: var(--radius-lg); padding: 16px; margin-bottom: 0;">
                     <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
                         <div id="weatherIcon" style="font-size: 2rem;"><i data-lucide="cloud"></i></div>
                         <div id="weatherTemp" style="font-size: 1.8rem; font-weight: 700;">--°C</div>
@@ -551,37 +567,28 @@
                 </div>
                 <div class="header-actions">
                     <span  class="autosave-indicator"></span>
-                    <button class="btn btn-secondary" id="manageCalendarLinksBtn">
+                    
+                    <!-- Calendar Links -->
+                    <button class="btn btn-secondary btn-sm" id="manageCalendarLinksBtn">
                         <i data-lucide="link"></i> Calendar Links
+                    </button>
+
+                    <!-- Stamp Mode Tools -->
+                    <button class="btn btn-secondary btn-sm" onclick="document.getElementById('stampModeModal').classList.add('active')">
+                        <i data-lucide="stamp"></i> Stamp Mode
+                    </button>
+                    
+                    <button id="exitStampModeBtn" class="btn btn-primary btn-sm" onclick="exitStampMode()" style="display: none; background-color: var(--primary-color);">
+                        <i data-lucide="check"></i> Done Stamping
+                    </button>
+                    
+                    <button class="btn btn-primary btn-sm" onclick="if(window.syncDataToCloud) window.syncDataToCloud(null, null, true);" style="background: var(--success); border-color: var(--success);">
+                        <i data-lucide="cloud-upload"></i> Save Changes
                     </button>
                 </div>
             </header>
             
             <section class="section-container" style="display: flex; flex-direction: column; min-height: 0; flex: 1 1 0%;">
-                
-                <div class="card" style="margin-bottom: 12px; flex-shrink: 0;">
-                    <div class="card-header" style="padding-bottom: 8px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
-                        <h3 class="card-title" style="display: flex; align-items: center; gap: 8px;">
-                            <i data-lucide="stamp"></i> Stamp Mode (Activity Templates)
-                        </h3>
-                        <div style="display: flex; gap: 8px; align-items: center;">
-                            <button class="btn btn-secondary btn-sm" onclick="openAddStampModal()">
-                                <i data-lucide="plus"></i> Add Stamp
-                            </button>
-                            <button id="exitStampModeBtn" class="btn btn-primary btn-sm" onclick="exitStampMode()" style="display: none; background-color: var(--primary-color);">
-                                <i data-lucide="check"></i> Done Stamping
-                            </button>
-                            <button class="btn btn-primary btn-sm" onclick="if(window.syncDataToCloud) window.syncDataToCloud(null, null, true);" style="background: var(--success); border-color: var(--success);">
-                                <i data-lucide="cloud-upload"></i> Save Changes
-                            </button>
-                        </div>
-                    </div>
-                    <div class="card-content" style="padding-top: 12px;">
-                        <div id="stampList" style="display: flex; gap: 8px; flex-wrap: wrap;">
-                            <!-- Stamp buttons injected here -->
-                        </div>
-                    </div>
-                </div>
 
                 <div class="card" style="display: flex; flex-direction: column; min-height: 0; padding: 12px 20px 20px 20px; flex: 1 1 0%;">
                     <div id="calendar" style="flex: 1 1 0%; min-height: 0;"></div>
@@ -590,103 +597,7 @@
         
         </main>
 
-        <main class="main-content view-section" id="view-settings">
-            <div class="header-title">
-    <h1>Data & Settings</h1>
-    <p class="subtitle" style="margin-bottom: 24px;">Manage your local data, backup, and restore.</p>
-</div>
-
-<div class="lists-section" style="grid-template-columns: 1fr 1fr; gap: 24px;">
-    <!-- Backup & Restore -->
-    <div class="card list-card">
-        <div class="card-header">
-            <h3 style="display: flex; align-items: center; gap: 8px;">
-                <i data-lucide="database-backup"></i> Backup & Restore
-            </h3>
-        </div>
-        <div class="card-content" style="display: flex; flex-direction: column; gap: 16px;">
-            <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 8px;">
-                Your data is stored securely in this browser. You should regularly export a backup file to prevent data loss.
-            </p>
-            
-            <button class="btn btn-primary" onclick="exportData()" style="display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%;">
-                <i data-lucide="download"></i> Download Backup (.json)
-            </button>
-            
-            <div style="height: 1px; background-color: var(--border-color); margin: 8px 0;"></div>
-            
-            <label for="importDataFile" style="color: var(--text-secondary); font-size: 14px; font-weight: 500;">
-                Restore from Backup:
-            </label>
-            <input type="file" id="importDataFile" class="form-input" accept=".json" style="padding: 8px;">
-            
-            <button class="btn btn-secondary" onclick="importData()" style="display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%;">
-                <i data-lucide="upload"></i> Restore Data
-            </button>
-        </div>
-    </div>
-
-    <!-- Export to CSV -->
-    <div class="card list-card">
-        <div class="card-header">
-            <h3 style="display: flex; align-items: center; gap: 8px;">
-                <i data-lucide="file-spreadsheet"></i> Export to CSV
-            </h3>
-        </div>
-        <div class="card-content" style="display: flex; flex-direction: column; gap: 16px;">
-            <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 8px;">
-                Export your transaction history to a CSV file. You can open this file in Microsoft Excel, Apple Numbers, or Google Sheets.
-            </p>
-            
-            <button class="btn btn-success" onclick="exportTransactionsCSV()" style="display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%;">
-                <i data-lucide="table"></i> Export Transactions (CSV)
-            </button>
-        </div>
-    </div>
-
-    <!-- AI Integrations -->
-    <div class="card list-card" style="grid-column: 1 / -1;">
-        <div class="card-header">
-            <h3 style="display: flex; align-items: center; gap: 8px;">
-                <i data-lucide="bot"></i> AI Integrations (Gemini API) <span style="font-size: 14px; font-weight: normal; color: var(--text-secondary);">- Powered by Gemini 3.5 Flash</span>
-            </h3>
-        </div>
-        <div class="card-content" style="display: flex; flex-direction: column; gap: 16px;">
-            <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 8px;">
-                Enter your Google Gemini API Key to enable AI-powered features, such as smart bank statement analysis. Your key is saved locally in this browser.
-            </p>
-            <div class="form-group" style="display: flex; gap: 12px; margin: 0;">
-                <input type="password" id="geminiApiKeyInput" class="form-input" placeholder="AIzaSy..." style="flex: 1;">
-                <button class="btn btn-primary" onclick="saveGeminiApiKey()">Save Key</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Import from Bank (CSV/PDF) -->
-    <div class="card list-card" style="grid-column: 1 / -1;">
-        <div class="card-header">
-            <h3 class="card-title" style="display: flex; align-items: center; gap: 8px;">
-                <i data-lucide="building-2"></i> Import from Bank Statement (CSV / Image)
-            </h3>
-        </div>
-        <div class="card-content" style="display: flex; flex-direction: column; gap: 16px;">
-            <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 8px;">
-                Upload a CSV or an Image (screenshot) of your statement from your bank app. The AI will automatically read your transactions and import them.
-            </p>
-            
-            <input type="file" id="importBankCsvFile" class="form-input" accept=".csv, image/*" multiple style="display: none;" onchange="handleBankCsvImport(event)">
-            <button class="btn btn-warning" onclick="document.getElementById('importBankCsvFile').click()" style="display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%;">
-                <i data-lucide="upload"></i> Upload Bank Statement (CSV or Image)
-            </button>
-            
-            <button class="btn" onclick="clearAIImportedData()" style="display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; margin-top: 8px; background-color: #ef4444; color: white; border: none;">
-                <i data-lucide="trash-2"></i> Clear Previously Imported AI Data
-            </button>
-        </div>
-    </div>
-</div>
-
-        </main>
+        <!-- View Settings has been removed and converted to Profile Modal -->
 
         <!-- To-Do List Section -->
         <main class="main-content view-section" id="view-todo">
@@ -779,18 +690,25 @@
                             <form id="taxIncomeForm" style="display: flex; flex-wrap: wrap; gap: 12px; align-items: end; padding-top: 16px; border-top: 1px solid var(--border-color);">
                                 <div style="flex: 2; min-width: 150px;">
                                     <label class="form-label">Source Name</label>
-                                    <input type="text" id="taxIncName" class="form-input" placeholder="e.g. Hospital A" required>
+                                    <input type="text" id="taxIncName" class="form-input" placeholder="e.g. Hospital A, Bonus" required>
                                 </div>
                                 <div style="flex: 1; min-width: 120px;">
                                     <label class="form-label">Type</label>
                                     <select id="taxIncType" class="form-input" required>
-                                        <option value="40(1)">40(1) Salary</option>
-                                        <option value="40(6)">40(6) Medical</option>
-                                        <option value="40(8)">40(8) Other</option>
+                                        <option value="40(1)">40(1) Salary/Bonus</option>
+                                        <option value="40(6)">40(6) Medical/Professional</option>
+                                        <option value="40(8)">40(8) Commerce/Other</option>
+                                    </select>
+                                </div>
+                                <div style="flex: 1; min-width: 100px;">
+                                    <label class="form-label">Frequency</label>
+                                    <select id="taxIncFreq" class="form-input" required>
+                                        <option value="monthly">Monthly</option>
+                                        <option value="annually">Annually</option>
                                     </select>
                                 </div>
                                 <div style="flex: 1; min-width: 120px;">
-                                    <label class="form-label">Monthly Amount (฿)</label>
+                                    <label class="form-label">Amount (฿)</label>
                                     <input type="number" id="taxIncAmount" class="form-input" placeholder="0.00" required min="0">
                                 </div>
                                 <div>
@@ -822,8 +740,12 @@
                                     </select>
                                 </div>
                                 <div class="form-group">
-                                    <label>GPF (กบข.) (฿)</label>
-                                    <input type="number" id="taxGPF" class="form-input" placeholder="Max 30% or 500k">
+                                    <label>Social Security (฿)</label>
+                                    <input type="number" id="taxSocialSecurity" class="form-input" placeholder="Max 9,000">
+                                </div>
+                                <div class="form-group">
+                                    <label>Provident Fund (PVD) / GPF (฿)</label>
+                                    <input type="number" id="taxGPF" class="form-input" placeholder="Max 15% or 500k">
                                 </div>
                                 <div class="form-group">
                                     <label>Life & Health Insurance (฿)</label>
@@ -975,6 +897,28 @@
                 </div>
         
     </main>
+    </div>
+
+    <!-- Stamp Mode Modal -->
+    <div class="modal-overlay" id="stampModeModal">
+        <div class="modal" style="max-width: 500px;">
+            <div class="modal-header">
+                <h3>Select a Stamp</h3>
+                <button class="icon-btn close-modal" onclick="document.getElementById('stampModeModal').classList.remove('active')"><i data-lucide="x"></i></button>
+            </div>
+            <div class="modal-body" style="padding-top: 16px;">
+                <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 16px;">Choose a stamp below to enter Stamp Mode, then click on calendar days to assign it.</p>
+                <div id="stampList" style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <!-- Stamp buttons injected here -->
+                </div>
+            </div>
+            <div class="modal-footer" style="margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border-color); display: flex; justify-content: space-between;">
+                <button class="btn btn-secondary btn-sm" onclick="openAddStampModal()">
+                    <i data-lucide="plus"></i> Add New Stamp
+                </button>
+                <button type="button" class="btn btn-primary btn-sm" onclick="document.getElementById('stampModeModal').classList.remove('active')">Close</button>
+            </div>
+        </div>
     </div>
 
     <!-- Add Stamp Modal -->
@@ -1373,9 +1317,234 @@
         </div>
     </div>
 
+    <!-- Profile Settings Modal -->
+    <div class="modal-overlay" id="profileSettingsModal">
+        <div class="modal" style="max-width: 480px;">
+            <div class="modal-header">
+                <h3>Profile & Settings</h3>
+                <button class="icon-btn close-modal" onclick="document.getElementById('profileSettingsModal').classList.remove('active')"><i data-lucide="x"></i></button>
+            </div>
+            <div class="modal-body" style="display: flex; flex-direction: column; gap: 24px; align-items: center;">
+                <div style="text-align: center;">
+                    <div style="position: relative; display: inline-block; cursor: pointer;" onclick="document.getElementById('avatarInput').click()" title="Change Profile Picture">
+                        <img src="./kururu_avatar.jpg" alt="Profile" class="avatar" id="modalAvatarImg" style="width: 80px; height: 80px;">
+                        <div class="avatar-overlay" style="border-radius: 50%;">
+                            <i data-lucide="camera" style="width: 24px; height: 24px;"></i>
+                        </div>
+                    </div>
+                    <input type="file" id="avatarInput" accept="image/*" style="display: none;">
+                    <h2 style="margin-top: 12px; font-size: 20px; color: var(--text-primary); font-weight: 600;">Nutt Prahuangmas</h2>
+                    <p style="color: var(--text-secondary); font-size: 14px;">General Physician</p>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 100%;">
+                    <button class="btn btn-outline" style="justify-content: center; gap: 8px; height: 50px;" onclick="document.getElementById('profileSettingsModal').classList.remove('active'); document.getElementById('bgModal').classList.add('active');">
+                        <i data-lucide="image"></i> Personalize Background
+                    </button>
+                    <button class="btn btn-outline" style="justify-content: center; gap: 8px; height: 50px;" onclick="document.getElementById('profileSettingsModal').classList.remove('active'); document.getElementById('backupRestoreModal').classList.add('active');">
+                        <i data-lucide="database-backup"></i> Backup & Restore
+                    </button>
+                    <button class="btn btn-outline" style="justify-content: center; gap: 8px; height: 50px;" onclick="document.getElementById('profileSettingsModal').classList.remove('active'); document.getElementById('exportCsvModal').classList.add('active');">
+                        <i data-lucide="file-spreadsheet"></i> Export CSV
+                    </button>
+                    <button class="btn btn-outline" style="justify-content: center; gap: 8px; height: 50px;" onclick="document.getElementById('profileSettingsModal').classList.remove('active'); document.getElementById('aiIntegrationModal').classList.add('active');">
+                        <i data-lucide="bot"></i> AI Integrations
+                    </button>
+                    <button class="btn btn-outline" style="grid-column: 1 / -1; justify-content: center; gap: 8px; height: 50px;" onclick="document.getElementById('profileSettingsModal').classList.remove('active'); document.getElementById('importBankModal').classList.add('active');">
+                        <i data-lucide="building-2"></i> Import from Bank Statement
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
+    <!-- Backup & Restore Modal -->
+    <div class="modal-overlay" id="backupRestoreModal">
+        <div class="modal" style="max-width: 500px;">
+            <div class="modal-header">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <button class="icon-btn" onclick="document.getElementById('backupRestoreModal').classList.remove('active'); document.getElementById('profileSettingsModal').classList.add('active');" style="margin-right: 8px;"><i data-lucide="arrow-left"></i></button>
+                    <h3 style="margin: 0;">Backup & Restore</h3>
+                </div>
+                <button class="icon-btn close-modal" onclick="document.getElementById('backupRestoreModal').classList.remove('active');"><i data-lucide="x"></i></button>
+            </div>
+            <div class="modal-body" style="display: flex; flex-direction: column; gap: 16px;">
+                <p style="color: var(--text-secondary); font-size: 14px;">Your data is stored securely in this browser. You should regularly export a backup file to prevent data loss.</p>
+                <button class="btn btn-primary" onclick="exportData()" style="display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%;">
+                    <i data-lucide="download"></i> Download Backup (.json)
+                </button>
+                <div style="height: 1px; background-color: var(--border-color); margin: 8px 0;"></div>
+                <label for="importDataFile" style="color: var(--text-secondary); font-size: 14px; font-weight: 500;">Restore from Backup:</label>
+                <input type="file" id="importDataFile" class="form-input" accept=".json" style="padding: 8px;">
+                <button class="btn btn-secondary" onclick="importData()" style="display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%;">
+                    <i data-lucide="upload"></i> Restore Data
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Export CSV Modal -->
+    <div class="modal-overlay" id="exportCsvModal">
+        <div class="modal" style="max-width: 500px;">
+            <div class="modal-header">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <button class="icon-btn" onclick="document.getElementById('exportCsvModal').classList.remove('active'); document.getElementById('profileSettingsModal').classList.add('active');" style="margin-right: 8px;"><i data-lucide="arrow-left"></i></button>
+                    <h3 style="margin: 0;">Export to CSV</h3>
+                </div>
+                <button class="icon-btn close-modal" onclick="document.getElementById('exportCsvModal').classList.remove('active');"><i data-lucide="x"></i></button>
+            </div>
+            <div class="modal-body" style="display: flex; flex-direction: column; gap: 16px;">
+                <p style="color: var(--text-secondary); font-size: 14px;">Export your transaction history to a CSV file. You can open this file in Microsoft Excel, Apple Numbers, or Google Sheets.</p>
+                <button class="btn btn-success" onclick="exportTransactionsCSV()" style="display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%;">
+                    <i data-lucide="table"></i> Export Transactions (CSV)
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Integrations Modal -->
+    <div class="modal-overlay" id="aiIntegrationModal">
+        <div class="modal" style="max-width: 500px;">
+            <div class="modal-header">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <button class="icon-btn" onclick="document.getElementById('aiIntegrationModal').classList.remove('active'); document.getElementById('profileSettingsModal').classList.add('active');" style="margin-right: 8px;"><i data-lucide="arrow-left"></i></button>
+                    <h3 style="margin: 0;">AI Integrations</h3>
+                </div>
+                <button class="icon-btn close-modal" onclick="document.getElementById('aiIntegrationModal').classList.remove('active');"><i data-lucide="x"></i></button>
+            </div>
+            <div class="modal-body" style="display: flex; flex-direction: column; gap: 16px;">
+                <p style="color: var(--text-secondary); font-size: 14px;">Enter your Google Gemini API Key to enable AI-powered features, such as smart bank statement analysis. Your key is saved locally in this browser.</p>
+                <div class="form-group" style="display: flex; gap: 12px; margin: 0;">
+                    <input type="password" id="geminiApiKeyInput" class="form-input" placeholder="AIzaSy..." style="flex: 1;">
+                    <button class="btn btn-primary" onclick="saveGeminiApiKey()">Save Key</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Import Bank Modal -->
+    <div class="modal-overlay" id="importBankModal">
+        <div class="modal" style="max-width: 500px;">
+            <div class="modal-header">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <button class="icon-btn" onclick="document.getElementById('importBankModal').classList.remove('active'); document.getElementById('profileSettingsModal').classList.add('active');" style="margin-right: 8px;"><i data-lucide="arrow-left"></i></button>
+                    <h3 style="margin: 0;">Import from Bank Statement</h3>
+                </div>
+                <button class="icon-btn close-modal" onclick="document.getElementById('importBankModal').classList.remove('active');"><i data-lucide="x"></i></button>
+            </div>
+            <div class="modal-body" style="display: flex; flex-direction: column; gap: 16px;">
+                <p style="color: var(--text-secondary); font-size: 14px;">Upload a CSV or an Image (screenshot) of your statement from your bank app. The AI will automatically read your transactions and import them.</p>
+                <input type="file" id="importBankCsvFile" class="form-input" accept=".csv, image/*" multiple style="display: none;" onchange="handleBankCsvImport(event)">
+                <button class="btn btn-warning" onclick="document.getElementById('importBankCsvFile').click()" style="display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%;">
+                    <i data-lucide="upload"></i> Upload Bank Statement (CSV/Image)
+                </button>
+                <button class="btn" onclick="clearAIImportedData()" style="display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; margin-top: 8px; background-color: #ef4444; color: white; border: none;">
+                    <i data-lucide="trash-2"></i> Clear Previously Imported AI Data
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Background Personalization Modal -->
+    <div class="modal-overlay" id="bgModal">
+        <div class="modal" style="max-width: 500px;">
+            <div class="modal-header">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <button class="icon-btn" onclick="document.getElementById('bgModal').classList.remove('active'); document.getElementById('profileSettingsModal').classList.add('active');" style="margin-right: 8px;"><i data-lucide="arrow-left"></i></button>
+                    <h3 style="margin: 0;">Personalize Background</h3>
+                </div>
+                <button class="icon-btn close-modal" onclick="document.getElementById('bgModal').classList.remove('active')"><i data-lucide="x"></i></button>
+            </div>
+            <div class="modal-body" style="display: flex; flex-direction: column; gap: 20px;">
+                <div>
+                    <label style="display: block; font-weight: 500; margin-bottom: 12px;">Preset Themes (CSS Gradients)</label>
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;" id="bgPresetsContainer">
+                        <button class="btn btn-outline bg-preset-btn" data-theme-id="aurora" style="height: 80px; position: relative; overflow: hidden; border: 2px solid transparent;">
+                            <div class="bg-theme-aurora" style="position: absolute; inset: 0;"></div>
+                            <span style="position: relative; z-index: 1; color: white; text-shadow: 0 1px 4px rgba(0,0,0,0.5); font-weight: 600;">Aurora</span>
+                        </button>
+                        <button class="btn btn-outline bg-preset-btn" data-theme-id="ocean" style="height: 80px; position: relative; overflow: hidden; border: 2px solid transparent;">
+                            <div class="bg-theme-ocean" style="position: absolute; inset: 0;"></div>
+                            <span style="position: relative; z-index: 1; color: white; text-shadow: 0 1px 4px rgba(0,0,0,0.5); font-weight: 600;">Ocean</span>
+                        </button>
+                        <button class="btn btn-outline bg-preset-btn" data-theme-id="sunset" style="height: 80px; position: relative; overflow: hidden; border: 2px solid transparent;">
+                            <div class="bg-theme-sunset" style="position: absolute; inset: 0;"></div>
+                            <span style="position: relative; z-index: 1; color: white; text-shadow: 0 1px 4px rgba(0,0,0,0.5); font-weight: 600;">Sunset</span>
+                        </button>
+                        <button class="btn btn-outline bg-preset-btn" data-theme-id="forest" style="height: 80px; position: relative; overflow: hidden; border: 2px solid transparent;">
+                            <div class="bg-theme-forest" style="position: absolute; inset: 0;"></div>
+                            <span style="position: relative; z-index: 1; color: white; text-shadow: 0 1px 4px rgba(0,0,0,0.5); font-weight: 600;">Forest</span>
+                        </button>
+                        <button class="btn btn-outline bg-preset-btn" data-theme-id="monochrome" style="height: 80px; position: relative; overflow: hidden; border: 2px solid transparent;">
+                            <div class="bg-theme-monochrome" style="position: absolute; inset: 0;"></div>
+                            <span style="position: relative; z-index: 1; color: white; text-shadow: 0 1px 4px rgba(0,0,0,0.5); font-weight: 600;">Monochrome</span>
+                        </button>
+                        <button class="btn btn-outline bg-preset-btn" data-theme-id="none" style="height: 80px; position: relative; overflow: hidden; border: 2px solid transparent; background-color: var(--bg-secondary);">
+                            <span style="position: relative; z-index: 1; font-weight: 600;"><i data-lucide="ban" style="display: block; margin: 0 auto 4px;"></i> Basic</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div style="text-align: center; color: var(--text-secondary); font-size: 14px;">OR</div>
+
+                <div>
+                    <label style="display: block; font-weight: 500; margin-bottom: 12px;">Custom Image (Local)</label>
+                    <button class="btn btn-secondary" style="width: 100%; display: flex; justify-content: center; gap: 8px;" onclick="document.getElementById('bgInput').click()">
+                        <i data-lucide="upload-cloud"></i> Upload Custom Image
+                    </button>
+                    <input type="file" id="bgInput" accept="image/*" style="display: none;">
+                    <p style="font-size: 12px; color: var(--text-secondary); text-align: center; margin-top: 8px;">Image is processed locally and saved to browser storage.</p>
+                </div>
+            </div>
+            <div class="modal-footer" style="justify-content: flex-end; display: flex;">
+                <button type="button" class="btn btn-primary" onclick="document.getElementById('bgModal').classList.remove('active')">Done</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Daily Insight Background Modal -->
+    <div class="modal-overlay" id="insightBgModal">
+        <div class="modal" style="max-width: 500px;">
+            <div class="modal-header">
+                <h3 style="margin: 0;">Insight Background</h3>
+                <button class="icon-btn close-modal" onclick="closeInsightBgModal()"><i data-lucide="x"></i></button>
+            </div>
+            <div class="modal-body" style="display: flex; flex-direction: column; gap: 20px;">
+                <div>
+                    <h4 style="font-size: 14px; margin-bottom: 12px; font-weight: 500; color: var(--text-secondary);">Suggest Backgrounds</h4>
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
+                        <button class="bg-option" onclick="setInsightBackground('assets/insight_bg_1.jpg')" style="background-image: url('assets/insight_bg_1.jpg'); border-radius: var(--radius-md); height: 80px; width: 100%; border: none; cursor: pointer; background-size: cover; background-position: center; transition: all 0.2s ease;"></button>
+                        <button class="bg-option" onclick="setInsightBackground('assets/insight_bg_2.jpg')" style="background-image: url('assets/insight_bg_2.jpg'); border-radius: var(--radius-md); height: 80px; width: 100%; border: none; cursor: pointer; background-size: cover; background-position: center; transition: all 0.2s ease;"></button>
+                        <button class="bg-option" onclick="setInsightBackground('assets/insight_bg_3.jpg')" style="background-image: url('assets/insight_bg_3.jpg'); border-radius: var(--radius-md); height: 80px; width: 100%; border: none; cursor: pointer; background-size: cover; background-position: center; transition: all 0.2s ease;"></button>
+                        <button class="bg-option" onclick="setInsightBackground('assets/insight_bg_4.jpg')" style="background-image: url('assets/insight_bg_4.jpg'); border-radius: var(--radius-md); height: 80px; width: 100%; border: none; cursor: pointer; background-size: cover; background-position: center; transition: all 0.2s ease;"></button>
+                        <button class="bg-option" onclick="setInsightBackground('assets/insight_bg_5.jpg')" style="background-image: url('assets/insight_bg_5.jpg'); border-radius: var(--radius-md); height: 80px; width: 100%; border: none; cursor: pointer; background-size: cover; background-position: center; transition: all 0.2s ease;"></button>
+                    </div>
+                </div>
+                
+                <div>
+                    <h4 style="font-size: 14px; margin-bottom: 12px; font-weight: 500; color: var(--text-secondary);">Custom Upload</h4>
+                    <label class="btn btn-outline" style="display: flex; justify-content: center; gap: 8px; cursor: pointer; height: 40px;">
+                        <i data-lucide="upload"></i> Upload Image
+                        <input type="file" id="insightBgUpload" accept="image/*" style="display: none;" onchange="handleInsightBgUpload(event)">
+                    </label>
+                </div>
+                
+                <div style="margin-top: 10px;">
+                    <button class="btn btn-outline" onclick="removeInsightBackground()" style="width: 100%; justify-content: center; color: var(--danger-color); border-color: rgba(239,68,68,0.2); height: 40px;">
+                        Remove Background (Back to Gradient)
+                    </button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" onclick="closeInsightBgModal()">Done</button>
+            </div>
+        </div>
+    </div>
 
     <script src="https://unpkg.com/lucide@latest"></script>
-    <script>lucide.createIcons();</script>
+    <!-- Firebase Auth Check Initializer -->
+    <script>
+        lucide.createIcons();
+    </script>
 </body>
 </html>

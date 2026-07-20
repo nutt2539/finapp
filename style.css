@@ -1,21 +1,25 @@
 :root[data-theme="dark"] {
-    --bg-primary: #09090b;
-    --bg-secondary: #18181b;
+    --bg-primary: rgba(9, 9, 11, 0.4);
+    --bg-secondary: rgba(24, 24, 27, 0.5);
+    --bg-solid: #09090b;
     --text-primary: #fafafa;
     --text-secondary: #a1a1aa;
-    --border-color: rgba(255, 255, 255, 0.08);
-    --glass-bg: rgba(24, 24, 27, 0.6);
-    --glass-border: rgba(255, 255, 255, 0.05);
+    --border-color: rgba(255, 255, 255, 0.1);
+    --glass-bg: rgba(24, 24, 27, 0.65);
+    --glass-border: rgba(255, 255, 255, 0.15);
+    --holiday-bg: rgba(30, 41, 59, 0.6);
 }
 
 :root[data-theme="light"] {
-    --bg-primary: #fafafa;
-    --bg-secondary: #ffffff;
+    --bg-primary: rgba(250, 250, 250, 0.4);
+    --bg-secondary: rgba(255, 255, 255, 0.5);
+    --bg-solid: #fafafa;
     --text-primary: #09090b;
     --text-secondary: #71717a;
-    --border-color: rgba(0, 0, 0, 0.08);
-    --glass-bg: rgba(255, 255, 255, 0.65);
-    --glass-border: rgba(0, 0, 0, 0.05);
+    --border-color: rgba(0, 0, 0, 0.1);
+    --glass-bg: rgba(255, 255, 255, 0.75);
+    --glass-border: rgba(255, 255, 255, 0.5);
+    --holiday-bg: rgba(241, 245, 249, 0.6);
 }
 
 :root {
@@ -54,10 +58,9 @@
 
 body {
     font-family: var(--font-family);
-    background-color: var(--bg-primary);
-    background-image: 
-        radial-gradient(circle at 15% 50%, rgba(99, 102, 241, 0.05), transparent 30%),
-        radial-gradient(circle at 85% 30%, rgba(168, 85, 247, 0.05), transparent 30%);
+    background-color: var(--bg-solid);
+    background-size: cover;
+    background-position: center;
     background-attachment: fixed;
     color: var(--text-primary);
     min-height: 100vh;
@@ -215,12 +218,6 @@ body {
 #view-schedule.active {
     display: flex;
     flex-direction: column;
-    height: calc(100vh - 64px);
-}
-@media (max-width: 768px) {
-    #view-schedule.active {
-        height: calc(100vh - 120px);
-    }
 }
 
 .main-content {
@@ -341,6 +338,16 @@ body {
     cursor: pointer;
     border: none;
     transition: var(--transition);
+}
+
+.btn-sm {
+    padding: 6px 12px;
+    font-size: 13px;
+    gap: 6px;
+}
+.btn-sm i {
+    width: 16px;
+    height: 16px;
 }
 
 .btn-primary {
@@ -574,6 +581,34 @@ body {
     margin-bottom: 32px;
 }
 
+.top-widgets-grid {
+    display: grid;
+    grid-template-columns: 1fr 160px 160px;
+    gap: 16px;
+    margin-bottom: 24px;
+}
+@media (max-width: 1024px) {
+    .top-widgets-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+    .insight-card {
+        grid-column: 1 / -1;
+    }
+}
+@media (max-width: 640px) {
+    .top-widgets-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+    }
+    .insight-card {
+        grid-column: 1 / -1;
+    }
+    .lucky-colors-card, .weather-card {
+        aspect-ratio: auto !important;
+        padding: 12px !important;
+    }
+}
+
 .chart-container {
     min-height: 350px;
 }
@@ -702,12 +737,15 @@ body {
 }
 
 .modal {
-    background-color: var(--bg-secondary);
-    border: 1px solid var(--border-color);
+    background-color: var(--glass-bg);
+    backdrop-filter: blur(32px);
+    -webkit-backdrop-filter: blur(32px);
     border-radius: var(--radius-lg);
     width: 100%;
     max-width: 500px;
     box-shadow: var(--shadow-lg);
+    border: 1px solid var(--glass-border);
+    overflow: hidden;
     transform: translateY(20px);
     transition: var(--transition);
 }
@@ -1179,4 +1217,68 @@ html.theme-transition *:after {
 
 .toast-error i {
     color: var(--danger);
+}
+
+/* Holiday & Weekend Calendar Cells */
+.calendar-holiday-weekend {
+    background-color: var(--holiday-bg) !important;
+}
+
+.thai-holiday-label {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    margin: auto auto auto 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    opacity: 0.8;
+}
+
+/* Background Presets */
+/* Aurora */
+.bg-theme-aurora {
+    background-color: #0f172a;
+    background-image: 
+        radial-gradient(circle at 15% 50%, rgba(99, 102, 241, 0.4), transparent 40%),
+        radial-gradient(circle at 85% 30%, rgba(168, 85, 247, 0.4), transparent 40%);
+}
+:root[data-theme="light"] .bg-theme-aurora { background-color: #e0e7ff; }
+
+/* Ocean */
+.bg-theme-ocean {
+    background-color: #083344;
+    background-image: 
+        radial-gradient(circle at 20% 80%, rgba(14, 165, 233, 0.4), transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(20, 184, 166, 0.4), transparent 50%);
+}
+:root[data-theme="light"] .bg-theme-ocean { background-color: #e0f2fe; }
+
+/* Sunset */
+.bg-theme-sunset {
+    background-color: #4c1d95;
+    background-image: 
+        radial-gradient(circle at 20% 20%, rgba(244, 63, 94, 0.4), transparent 50%),
+        radial-gradient(circle at 80% 80%, rgba(249, 115, 22, 0.4), transparent 50%);
+}
+:root[data-theme="light"] .bg-theme-sunset { background-color: #ffedd5; }
+
+/* Forest */
+.bg-theme-forest {
+    background-color: #064e3b;
+    background-image: 
+        radial-gradient(circle at 30% 70%, rgba(16, 185, 129, 0.4), transparent 50%),
+        radial-gradient(circle at 70% 30%, rgba(52, 211, 153, 0.4), transparent 50%);
+}
+:root[data-theme="light"] .bg-theme-forest { background-color: #d1fae5; }
+
+/* Monochrome */
+.bg-theme-monochrome {
+    background-color: #1e293b;
+    background-image: 
+        radial-gradient(circle at 50% 50%, rgba(148, 163, 184, 0.2), transparent 60%);
+}
+:root[data-theme="light"] .bg-theme-monochrome { background-color: #f1f5f9; }
+
+.bg-preset-btn:hover {
+    border-color: var(--accent-primary) !important;
 }

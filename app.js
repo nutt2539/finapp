@@ -166,6 +166,84 @@ if (avatarContainer && avatarInput && userAvatarImg) {
     });
 }
 
+// --- Background Management ---
+const bgInput = document.getElementById('bgInput');
+const presetBtns = document.querySelectorAll('.bg-preset-btn');
+
+function applyBackgroundState() {
+    const savedBg = localStorage.getItem('userBackground');
+    const savedTheme = localStorage.getItem('userTheme');
+    
+    // Clear all theme classes
+    document.body.className = document.body.className.replace(/\bbg-theme-\S+/g, '').trim();
+    document.body.style.backgroundImage = '';
+
+    if (savedBg) {
+        document.body.style.backgroundImage = `url(${savedBg})`;
+    } else if (savedTheme) {
+        document.body.classList.add(`bg-theme-${savedTheme}`);
+    }
+}
+
+if (bgInput) {
+    applyBackgroundState();
+
+    presetBtns.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const themeId = e.currentTarget.getAttribute('data-theme-id');
+            localStorage.removeItem('userBackground'); // Clear custom image
+            if (themeId === 'none') {
+                localStorage.removeItem('userTheme');
+            } else {
+                localStorage.setItem('userTheme', themeId);
+            }
+            applyBackgroundState();
+            // Close modal if desired, or let user stay in modal
+        });
+    });
+
+    bgInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const img = new Image();
+                img.onload = function() {
+                    const MAX_WIDTH = 1920;
+                    let width = img.width;
+                    let height = img.height;
+                    
+                    if (width > MAX_WIDTH) {
+                        height *= MAX_WIDTH / width;
+                        width = MAX_WIDTH;
+                    }
+                    
+                    const canvas = document.createElement('canvas');
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    
+                    const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+                    
+                    try {
+                        localStorage.setItem('userBackground', dataUrl);
+                        localStorage.removeItem('userTheme'); // Clear preset theme
+                        applyBackgroundState();
+                    } catch (e) {
+                        console.warn("Could not save background to localStorage", e);
+                        alert("Image too large to save permanently, but it will be shown for this session.");
+                        document.body.className = document.body.className.replace(/\bbg-theme-\S+/g, '').trim();
+                        document.body.style.backgroundImage = `url(${dataUrl})`;
+                    }
+                };
+                img.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+}
+
 // --- Data Management (Local Storage) ---
 const STORAGE_KEY = 'finance_dashboard_data_v3';
 const FIXED_STORAGE_KEY = 'finance_dashboard_fixed_expenses';
@@ -1150,24 +1228,29 @@ headerManageCategoriesBtn.addEventListener('click', () => {
 
 
 document.querySelectorAll('.close-modal').forEach(btn => {
-    btn.addEventListener('click', () => {
-        transactionModal.classList.remove('active');
-        fixedExpenseModal.classList.remove('active');
-        fixedIncomeModal.classList.remove('active');
-        manageCategoriesModal.classList.remove('active');
-        goalModal.classList.remove('active');
-        expectedIncomeModal.classList.remove('active');
+    btn.addEventListener('click', (e) => {
+        const overlay = e.target.closest('.modal-overlay');
+        if (overlay) {
+            overlay.classList.remove('active');
+        }
+        
+        // Reset states
         editingFixedExpenseId = null;
         editingFixedIncomeId = null;
         editingTransactionId = null;
         editingGoalId = null;
-        document.querySelector('#transactionModal .modal-header h2').textContent = 'Add Transaction';
-        document.querySelector('#goalModal .modal-header h2').textContent = 'Add Future Goal';
-        transactionForm.reset();
-        fixedExpenseForm.reset();
-        fixedIncomeForm.reset();
-        goalForm.reset();
-        expectedIncomeForm.reset();
+        
+        const txHeader = document.querySelector('#transactionModal .modal-header h2');
+        if (txHeader) txHeader.textContent = 'Add Transaction';
+        
+        const goalHeader = document.querySelector('#goalModal .modal-header h2');
+        if (goalHeader) goalHeader.textContent = 'Add Future Goal';
+        
+        if (typeof transactionForm !== 'undefined' && transactionForm) transactionForm.reset();
+        if (typeof fixedExpenseForm !== 'undefined' && fixedExpenseForm) fixedExpenseForm.reset();
+        if (typeof fixedIncomeForm !== 'undefined' && fixedIncomeForm) fixedIncomeForm.reset();
+        if (typeof goalForm !== 'undefined' && goalForm) goalForm.reset();
+        if (typeof expectedIncomeForm !== 'undefined' && expectedIncomeForm) expectedIncomeForm.reset();
     });
 });
 
@@ -1847,15 +1930,41 @@ if(calendarLinksForm) {
     });
 }
 
+const thaiHolidays2026 = {
+    '2026-01-01': 'วันขึ้นปีใหม่',
+    '2026-01-02': 'วันหยุดพิเศษ',
+    '2026-03-03': 'วันมาฆบูชา',
+    '2026-04-06': 'วันจักรี',
+    '2026-04-13': 'วันสงกรานต์',
+    '2026-04-14': 'วันสงกรานต์',
+    '2026-04-15': 'วันสงกรานต์',
+    '2026-05-01': 'วันแรงงานแห่งชาติ',
+    '2026-05-04': 'วันฉัตรมงคล',
+    '2026-05-31': 'วันวิสาขบูชา',
+    '2026-06-01': 'วันหยุดชดเชยวันวิสาขบูชา',
+    '2026-07-28': 'วันเฉลิมพระชนมพรรษา ร.10',
+    '2026-07-29': 'วันอาสาฬหบูชา',
+    '2026-07-30': 'วันเข้าพรรษา',
+    '2026-08-12': 'วันเฉลิมพระชนมพรรษา พระพันปีหลวง / วันแม่',
+    '2026-10-13': 'วันคล้ายวันสวรรคต ร.9',
+    '2026-10-23': 'วันปิยมหาราช',
+    '2026-12-05': 'วันพ่อแห่งชาติ',
+    '2026-12-07': 'วันหยุดชดเชยวันพ่อแห่งชาติ',
+    '2026-12-10': 'วันรัฐธรรมนูญ',
+    '2026-12-31': 'วันสิ้นปี'
+};
+
 function getEventSources() {
     const sources = [];
     const proxy = 'https://corsproxy.io/?';
     if (calendarUrls.google) {
-        const url = calendarUrls.google.startsWith('http') ? proxy + encodeURIComponent(calendarUrls.google) : calendarUrls.google;
+        let url = calendarUrls.google.replace(/^webcal:\/\//i, 'https://');
+        url = url.startsWith('http') ? proxy + url : url;
         sources.push({ url: url, format: 'ics', color: '#4285F4' });
     }
     if (calendarUrls.apple) {
-        const url = calendarUrls.apple.startsWith('http') ? proxy + encodeURIComponent(calendarUrls.apple) : calendarUrls.apple;
+        let url = calendarUrls.apple.replace(/^webcal:\/\//i, 'https://');
+        url = url.startsWith('http') ? proxy + url : url;
         sources.push({ url: url, format: 'ics', color: '#ff2d55' });
     }
     
@@ -1882,8 +1991,30 @@ function renderCalendar() {
             contentHeight: '100%',
             expandRows: true,
             displayEventTime: true,
+            dayCellDidMount: function(arg) {
+                const d = arg.date;
+                const dateStr = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+                const isWeekend = d.getDay() === 0 || d.getDay() === 6;
+                if (thaiHolidays2026[dateStr] || isWeekend) {
+                    arg.el.classList.add('calendar-holiday-weekend');
+                }
+                
+                if (thaiHolidays2026[dateStr]) {
+                    const topEl = arg.el.querySelector('.fc-daygrid-day-top');
+                    if (topEl) {
+                        const holidaySpan = document.createElement('span');
+                        holidaySpan.className = 'thai-holiday-label';
+                        holidaySpan.textContent = thaiHolidays2026[dateStr];
+                        topEl.append(holidaySpan);
+                    }
+                }
+            },
             dateClick: function(info) {
                 if (isStampMode && activeStamp && activeStamp.id !== 'eraser') {
+                    // Prevent same stamp on same day
+                    const isDuplicate = localCalendarEvents.some(e => e.start === info.dateStr && e.title === activeStamp.name);
+                    if (isDuplicate) return;
+
                     const newEvent = {
                         id: 'evt_' + Date.now(),
                         title: activeStamp.name,
@@ -1894,7 +2025,10 @@ function renderCalendar() {
                     };
                     localCalendarEvents.push(newEvent);
                     saveLocalCalendarEvents();
-                    calendar.addEvent(newEvent);
+                    
+                    const source = calendar.getEventSourceById('local-events');
+                    if (source) source.remove();
+                    calendar.addEventSource({ events: localCalendarEvents, id: 'local-events' });
                 }
             },
             eventClick: function(info) {
@@ -1920,7 +2054,14 @@ function renderCalendar() {
 
 // --- Stamp Mode Logic ---
 let calendarStamps = JSON.parse(localStorage.getItem('calendarStamps')) || [];
-let localCalendarEvents = JSON.parse(localStorage.getItem('localCalendarEvents')) || [];
+let rawLocalEvents = JSON.parse(localStorage.getItem('localCalendarEvents')) || [];
+// Deduplicate old duplicated events from previous bug
+const uniqueEventsMap = new Map();
+rawLocalEvents.forEach(e => uniqueEventsMap.set(e.start + '_' + e.title, e));
+let localCalendarEvents = Array.from(uniqueEventsMap.values());
+if (rawLocalEvents.length !== localCalendarEvents.length) {
+    localStorage.setItem('localCalendarEvents', JSON.stringify(localCalendarEvents));
+}
 let isStampMode = false;
 let activeStamp = null;
 
@@ -2026,6 +2167,10 @@ function activateStampMode(stamp) {
     const colorCue = stamp.id === 'eraser' ? 'var(--text-secondary)' : stamp.color;
     document.getElementById('calendar').style.border = `2px dashed ${colorCue}`;
     document.getElementById('calendar').style.borderRadius = '12px';
+    
+    // Close the stamp modal if open
+    const modal = document.getElementById('stampModeModal');
+    if (modal) modal.classList.remove('active');
     
     renderStamps(); // Re-render to show active state
 }
@@ -2728,12 +2873,14 @@ if(taxIncomeForm) {
         e.preventDefault();
         const name = document.getElementById('taxIncName').value.trim();
         const type = document.getElementById('taxIncType').value;
+        const freq = document.getElementById('taxIncFreq').value;
         const amount = parseFloat(document.getElementById('taxIncAmount').value) || 0;
         
-        taxIncomes.push({ id: Date.now(), name, type, amount });
+        taxIncomes.push({ id: Date.now(), name, type, freq, amount });
         saveTaxIncomes();
         taxIncomeForm.reset();
         document.getElementById('taxIncType').value = '40(1)'; // reset default
+        document.getElementById('taxIncFreq').value = 'monthly'; // reset default
         renderTaxIncomes();
     });
 }
@@ -2741,18 +2888,19 @@ if(taxIncomeForm) {
 function calculateTax() {
     let income40_1_2 = 0; // Salary & Wages
     let income40_6 = 0;   // Medical
-    let incomeOther = 0;  // Others (No standard deduction logic applied for now)
+    let incomeOther = 0;  // 40(8) Others
     
     let totalGrossIncome = 0;
     
     taxIncomes.forEach(inc => {
-        const annualAmount = inc.amount * 12;
+        const annualAmount = (inc.freq === 'annually') ? inc.amount : (inc.amount * 12);
         totalGrossIncome += annualAmount;
         if(inc.type === '40(1)') income40_1_2 += annualAmount;
         else if(inc.type === '40(6)') income40_6 += annualAmount;
         else incomeOther += annualAmount;
     });
 
+    const socialSecurity = parseFloat(document.getElementById('taxSocialSecurity')?.value) || 0;
     const gpf = parseFloat(document.getElementById('taxGPF')?.value) || 0;
     const insurance = parseFloat(document.getElementById('taxInsurance')?.value) || 0;
     const ssf = parseFloat(document.getElementById('taxSSF')?.value) || 0;
@@ -2768,25 +2916,29 @@ function calculateTax() {
     // 40(1) & (2) combined: 50% max 100,000
     const deduction40_1 = Math.min(income40_1_2 * 0.5, 100000);
     
-    // 40(6) Medical: 30% flat (unlimited)
-    const deduction40_6 = income40_6 * 0.3;
+    // 40(6) Medical: 60% flat (unlimited)
+    const deduction40_6 = income40_6 * 0.6;
+    
+    // 40(8) Other: 60% standard deduction (Commerce/Online Selling)
+    const deduction40_8 = incomeOther * 0.6;
     
     // Standard total deduction
-    const standardDeduction = deduction40_1 + deduction40_6;
+    const standardDeduction = deduction40_1 + deduction40_6 + deduction40_8;
     const personalExemption = maritalStatus === 'married' ? 120000 : 60000;
     const parentDeduction = parents * 30000;
     
     // Validate Max Caps
+    const validSocialSecurity = Math.min(socialSecurity, 9000);
     const validGPF = Math.min(gpf, totalGrossIncome * 0.3, 500000);
     const validInsurance = Math.min(insurance, 100000);
     const validSSF = Math.min(ssf, totalGrossIncome * 0.3, 200000);
     const validRMF = Math.min(rmf, totalGrossIncome * 0.3, 500000);
     const combinedRetirement = Math.min(validSSF + validRMF + validGPF, 500000);
-    const validESG = Math.min(esg, 300000);
+    const validESG = Math.min(esg, totalGrossIncome * 0.3, 300000);
     const validMortgage = Math.min(mortgage, 100000);
     
     // Calculate Base Deductions
-    let totalDeductions = standardDeduction + personalExemption + parentDeduction + validInsurance + combinedRetirement + validESG + validMortgage;
+    let totalDeductions = standardDeduction + personalExemption + parentDeduction + validInsurance + combinedRetirement + validESG + validMortgage + validSocialSecurity;
     
     // Donation is capped at 10% of (Income - other deductions)
     let netBeforeDonation = Math.max(0, totalGrossIncome - totalDeductions);
@@ -3570,3 +3722,199 @@ if (logoContainer && navMenu) {
         });
     });
 }
+
+// --- Lucky Colors Widget ---
+const LUCKY_COLORS = {
+    0: { // Sunday
+        name: 'อาทิตย์',
+        categories: [
+            { name: 'งานปัง', colors: [{name: 'ชมพู', hex: '#f472b6'}, {name: 'โอรส', hex: '#fb923c'}] },
+            { name: 'โชคดี', colors: [{name: 'เขียว', hex: '#4ade80'}, {name: 'มิ้นท์', hex: '#5eead4'}] },
+            { name: 'ร่ำรวย', colors: [{name: 'ดำ', hex: '#27272a'}, {name: 'ม่วง', hex: '#a855f7'}] },
+            { name: 'เมตตา', colors: [{name: 'เทา', hex: '#9ca3af'}, {name: 'ทอง', hex: '#eab308'}] },
+            { name: 'ฉุดดวง', colors: [{name: 'ฟ้า', hex: '#7dd3fc'}, {name: 'น้ำเงิน', hex: '#3b82f6'}] }
+        ]
+    },
+    1: { // Monday
+        name: 'จันทร์',
+        categories: [
+            { name: 'งานปัง', colors: [{name: 'เขียว', hex: '#4ade80'}, {name: 'ใบเตย', hex: '#86efac'}] },
+            { name: 'โชคดี', colors: [{name: 'ม่วง', hex: '#a855f7'}, {name: 'เทาดำ', hex: '#4b5563'}] },
+            { name: 'ร่ำรวย', colors: [{name: 'ส้ม', hex: '#f97316'}, {name: 'น้ำตาล', hex: '#92400e'}] },
+            { name: 'เมตตา', colors: [{name: 'ฟ้า', hex: '#7dd3fc'}, {name: 'น้ำเงิน', hex: '#3b82f6'}] },
+            { name: 'ฉุดดวง', colors: [{name: 'แดง', hex: '#ef4444'}, {name: 'เลือดหมู', hex: '#991b1b'}] }
+        ]
+    },
+    2: { // Tuesday
+        name: 'อังคาร',
+        categories: [
+            { name: 'งานปัง', colors: [{name: 'ม่วง', hex: '#a855f7'}, {name: 'เทาดำ', hex: '#4b5563'}] },
+            { name: 'โชคดี', colors: [{name: 'ส้ม', hex: '#f97316'}, {name: 'น้ำตาล', hex: '#92400e'}] },
+            { name: 'ร่ำรวย', colors: [{name: 'ดำ', hex: '#27272a'}, {name: 'เทา', hex: '#9ca3af'}] },
+            { name: 'เมตตา', colors: [{name: 'แดง', hex: '#ef4444'}, {name: 'ชมพู', hex: '#f472b6'}] },
+            { name: 'ฉุดดวง', colors: [{name: 'ขาว', hex: '#f8fafc'}, {name: 'เหลือง', hex: '#fde047'}] }
+        ]
+    },
+    3: { // Wednesday
+        name: 'พุธ',
+        categories: [
+            { name: 'งานปัง', colors: [{name: 'ส้ม', hex: '#f97316'}, {name: 'น้ำตาล', hex: '#92400e'}] },
+            { name: 'โชคดี', colors: [{name: 'เทา', hex: '#9ca3af'}, {name: 'ทอง', hex: '#eab308'}] },
+            { name: 'ร่ำรวย', colors: [{name: 'ฟ้า', hex: '#7dd3fc'}, {name: 'น้ำเงิน', hex: '#3b82f6'}] },
+            { name: 'เมตตา', colors: [{name: 'เหลือง', hex: '#fde047'}, {name: 'ขาว', hex: '#f8fafc'}] },
+            { name: 'ฉุดดวง', colors: [{name: 'ชมพู', hex: '#f472b6'}, {name: 'บานเย็น', hex: '#d946ef'}] }
+        ]
+    },
+    4: { // Thursday
+        name: 'พฤหัสบดี',
+        categories: [
+            { name: 'งานปัง', colors: [{name: 'ฟ้า', hex: '#7dd3fc'}, {name: 'น้ำเงิน', hex: '#3b82f6'}] },
+            { name: 'โชคดี', colors: [{name: 'แดง', hex: '#ef4444'}, {name: 'เลือดหมู', hex: '#991b1b'}] },
+            { name: 'ร่ำรวย', colors: [{name: 'เหลือง', hex: '#fde047'}, {name: 'ครีม', hex: '#fef3c7'}] },
+            { name: 'เมตตา', colors: [{name: 'เขียว', hex: '#4ade80'}, {name: 'ใบเตย', hex: '#86efac'}] },
+            { name: 'ฉุดดวง', colors: [{name: 'ดำ', hex: '#27272a'}, {name: 'เทาดำ', hex: '#4b5563'}] }
+        ]
+    },
+    5: { // Friday
+        name: 'ศุกร์',
+        categories: [
+            { name: 'งานปัง', colors: [{name: 'เหลือง', hex: '#fde047'}, {name: 'ขาว', hex: '#f8fafc'}] },
+            { name: 'โชคดี', colors: [{name: 'ชมพู', hex: '#f472b6'}, {name: 'บานเย็น', hex: '#d946ef'}] },
+            { name: 'ร่ำรวย', colors: [{name: 'เขียว', hex: '#4ade80'}, {name: 'มิ้นท์', hex: '#5eead4'}] },
+            { name: 'เมตตา', colors: [{name: 'ส้ม', hex: '#f97316'}, {name: 'น้ำตาล', hex: '#92400e'}] },
+            { name: 'ฉุดดวง', colors: [{name: 'เทา', hex: '#9ca3af'}, {name: 'ทอง', hex: '#eab308'}] }
+        ]
+    },
+    6: { // Saturday
+        name: 'เสาร์',
+        categories: [
+            { name: 'งานปัง', colors: [{name: 'น้ำตาลเข้ม', hex: '#451a03'}, {name: 'เทา', hex: '#9ca3af'}] },
+            { name: 'โชคดี', colors: [{name: 'ฟ้า', hex: '#7dd3fc'}, {name: 'น้ำเงิน', hex: '#3b82f6'}] },
+            { name: 'ร่ำรวย', colors: [{name: 'แดง', hex: '#ef4444'}, {name: 'ชมพู', hex: '#f472b6'}] },
+            { name: 'เมตตา', colors: [{name: 'ชมพู', hex: '#f472b6'}, {name: 'โอรส', hex: '#fb923c'}] },
+            { name: 'ฉุดดวง', colors: [{name: 'เขียว', hex: '#4ade80'}, {name: 'เขียวเข้ม', hex: '#15803d'}] }
+        ]
+    }
+};
+
+let currentLuckyCategoryIndex = 0;
+
+function renderLuckyColors() {
+    const container = document.getElementById('luckyColorsContainer');
+    const dayNameSpan = document.getElementById('luckyDayName');
+    if (!container || !dayNameSpan) return;
+
+    const today = new Date().getDay();
+    const luckyData = LUCKY_COLORS[today];
+    
+    dayNameSpan.textContent = `(${luckyData.name})`;
+    
+    container.innerHTML = '';
+    
+    const cat = luckyData.categories[currentLuckyCategoryIndex];
+    
+    const catDiv = document.createElement('div');
+    catDiv.style.cssText = `
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        background: transparent;
+        padding: 4px;
+        width: 100%;
+    `;
+    
+    const catName = document.createElement('div');
+    catName.textContent = cat.name;
+    catName.style.cssText = 'font-size: 13px; color: var(--text-primary); margin-bottom: 8px; font-weight: 500; text-align: center;';
+    
+    const colorsWrapper = document.createElement('div');
+    colorsWrapper.style.cssText = 'display: flex; gap: 8px; justify-content: center;';
+    
+    cat.colors.forEach(color => {
+        const colorDot = document.createElement('div');
+        colorDot.title = color.name;
+        colorDot.style.cssText = `
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background-color: ${color.hex};
+            border: 1px solid rgba(0,0,0,0.1);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        `;
+        if (color.hex === '#f8fafc' || color.hex === '#ffffff' || color.hex === '#fef3c7') {
+            colorDot.style.border = '1px solid rgba(0,0,0,0.2)';
+        }
+        colorsWrapper.appendChild(colorDot);
+    });
+    
+    catDiv.appendChild(catName);
+    catDiv.appendChild(colorsWrapper);
+    container.appendChild(catDiv);
+}
+
+function nextLuckyCategory() {
+    const today = new Date().getDay();
+    const categoriesLength = LUCKY_COLORS[today].categories.length;
+    currentLuckyCategoryIndex = (currentLuckyCategoryIndex + 1) % categoriesLength;
+    renderLuckyColors();
+}
+
+function prevLuckyCategory() {
+    const today = new Date().getDay();
+    const categoriesLength = LUCKY_COLORS[today].categories.length;
+    currentLuckyCategoryIndex = (currentLuckyCategoryIndex - 1 + categoriesLength) % categoriesLength;
+    renderLuckyColors();
+}
+
+// Render on load
+renderLuckyColors();
+
+// --- Insight Background Modal ---
+function openInsightBgModal() {
+    document.getElementById('insightBgModal').classList.add('active');
+}
+
+function closeInsightBgModal() {
+    document.getElementById('insightBgModal').classList.remove('active');
+}
+
+function setInsightBackground(url) {
+    const card = document.querySelector('.insight-card');
+    if (card) {
+        card.style.backgroundImage = `linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.6)), url('${url}')`;
+        card.style.backgroundSize = 'cover';
+        card.style.backgroundPosition = 'center';
+        card.classList.remove('bg-gradient-insight');
+        // Save to local storage
+        localStorage.setItem('insightBg', url);
+    }
+}
+
+function removeInsightBackground() {
+    const card = document.querySelector('.insight-card');
+    if (card) {
+        card.style.backgroundImage = '';
+        card.classList.add('bg-gradient-insight');
+        localStorage.removeItem('insightBg');
+    }
+}
+
+function handleInsightBgUpload(event) {
+    const file = event.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const dataUrl = e.target.result;
+            setInsightBackground(dataUrl);
+        };
+        reader.readAsDataURL(file);
+    }
+}
+
+// Load saved insight background on init
+document.addEventListener('DOMContentLoaded', () => {
+    const savedBg = localStorage.getItem('insightBg');
+    if (savedBg) {
+        setInsightBackground(savedBg);
+    }
+});
