@@ -1336,6 +1336,9 @@ html.theme-transition *:after {
         width: auto;
         text-align: left;
     }
+    #insightMascotContainer {
+        display: none !important;
+    }
 }
 
 @keyframes mascotBobbing {
