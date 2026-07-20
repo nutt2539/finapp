@@ -604,8 +604,23 @@ body {
         grid-column: 1 / -1;
     }
     .lucky-colors-card, .weather-card {
-        aspect-ratio: auto !important;
-        padding: 12px !important;
+        aspect-ratio: 2.4 / 1 !important;
+        padding: 4px 8px !important;
+    }
+    
+    .weather-card #weatherViewContainer > div {
+        transform: scale(0.85);
+        transform-origin: center center;
+    }
+    .lucky-colors-card h3 {
+        font-size: 11px !important;
+    }
+    .lucky-colors-card .color-circle {
+        width: 18px !important;
+        height: 18px !important;
+    }
+    #luckyColorsContainer {
+        min-height: 40px !important;
     }
 }
 
@@ -868,11 +883,11 @@ body {
         top: 100%; 
         left: 0; 
         right: 0; 
-        background: var(--bg-secondary); 
+        background: var(--bg-solid);
         padding: 16px; 
         border-bottom: 1px solid var(--border-color); 
         z-index: 1000;
-        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
     }
     .nav-menu.mobile-open {
         display: flex !important;
@@ -1281,4 +1296,44 @@ html.theme-transition *:after {
 
 .bg-preset-btn:hover {
     border-color: var(--accent-primary) !important;
+}
+
+/* Weather Widget Layout */
+.weather-current-layout {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+}
+
+.weather-current-icon {
+    font-size: 3rem; 
+    filter: drop-shadow(0 4px 8px rgba(0,0,0,0.15)); 
+    margin-top: 2px;
+}
+
+.weather-current-details {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    margin-bottom: 0;
+    width: 100%;
+}
+
+@media (max-width: 768px) {
+    .weather-current-layout {
+        flex-direction: row;
+        gap: 12px;
+    }
+    .weather-current-icon {
+        margin-top: 0;
+        font-size: 2.5rem !important;
+    }
+    .weather-current-details {
+        align-items: flex-start;
+        width: auto;
+        text-align: left;
+    }
 }

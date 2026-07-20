@@ -123,6 +123,11 @@ themeToggleBtn.addEventListener('click', () => {
         updateCharts();
     }
     
+    // Update weather background dynamically when theme changes
+    if (typeof updateWeatherView === 'function') {
+        updateWeatherView();
+    }
+    
     setTimeout(() => {
         htmlEl.classList.remove('theme-transition');
     }, 400);
@@ -3638,50 +3643,209 @@ function exportTransactionsCSV() {
     link.click();
 }
 
-// --- Weather Widget Logic ---
-async function loadWeather() {
-    const tempEl = document.getElementById('weatherTemp');
-    const descEl = document.getElementById('weatherDesc');
+let currentWeatherData = null;
+let currentWeatherViewIndex = 0;
+
+function getWeatherTheme(code, isNight, isDark) {
+    let theme = {};
+    if (isDark) {
+        if (code === 0) { // Clear
+            theme = isNight 
+                ? { bg: 'linear-gradient(180deg, #1e2235 0%, #111424 100%)', color: '#e2e8f0', shadow: 'rgba(0,0,0,0.5)', icon: '🌙', desc: "แจ่มใส" }
+                : { bg: 'linear-gradient(180deg, #332717 0%, #1f160c 100%)', color: '#fde68a', shadow: 'rgba(255,170,0,0.1)', icon: '☀️', desc: "แดดจัด" };
+        } else if (code >= 1 && code <= 3) { // Cloudy
+            theme = isNight
+                ? { bg: 'linear-gradient(180deg, #1e293b 0%, #0f172a 100%)', color: '#cbd5e1', shadow: 'rgba(0,0,0,0.5)', icon: '☁️', desc: "มีเมฆบางส่วน" }
+                : { bg: 'linear-gradient(180deg, #273449 0%, #172033 100%)', color: '#e2e8f0', shadow: 'rgba(0,0,0,0.3)', icon: '🌤️', desc: "มีเมฆบางส่วน" };
+        } else if (code >= 45 && code <= 48) { // Fog
+            theme = { bg: 'linear-gradient(180deg, #334155 0%, #1e293b 100%)', color: '#e2e8f0', shadow: 'rgba(0,0,0,0.4)', icon: '🌫️', desc: "มีหมอก" };
+        } else if ((code >= 51 && code <= 67) || (code >= 80 && code <= 82)) { // Rain
+            theme = { bg: 'linear-gradient(180deg, #1e1b4b 0%, #0f172a 100%)', color: '#c7d2fe', shadow: 'rgba(0,0,0,0.5)', icon: '🌧️', desc: "ฝนตก" };
+        } else if (code >= 71 && code <= 77) { // Snow
+            theme = { bg: 'linear-gradient(180deg, #1e293b 0%, #0f172a 100%)', color: '#e0f2fe', shadow: 'rgba(0,0,0,0.5)', icon: '❄️', desc: "หิมะตก" };
+        } else { // Storm
+            theme = { bg: 'linear-gradient(180deg, #0f172a 0%, #020617 100%)', color: '#94a3b8', shadow: 'rgba(0,0,0,0.6)', icon: '⛈️', desc: "พายุฟ้าคะนอง" };
+        }
+    } else { // Light Mode
+        if (code === 0) { // Clear
+            theme = isNight
+                ? { bg: 'linear-gradient(180deg, #2e3856 0%, #1a2035 100%)', color: '#ffffff', shadow: 'rgba(26,32,53,0.3)', icon: '🌙', desc: "แจ่มใส" }
+                : { bg: 'linear-gradient(180deg, #fff5d1 0%, #ffdf99 100%)', color: '#92400e', shadow: 'rgba(255,200,100,0.2)', icon: '☀️', desc: "แดดจัด" };
+        } else if (code >= 1 && code <= 3) { // Cloudy
+            theme = isNight
+                ? { bg: 'linear-gradient(180deg, #475569 0%, #334155 100%)', color: '#f8fafc', shadow: 'rgba(51,65,85,0.3)', icon: '☁️', desc: "มีเมฆบางส่วน" }
+                : { bg: 'linear-gradient(180deg, #f1f5f9 0%, #e2e8f0 100%)', color: '#334155', shadow: 'rgba(148,163,184,0.2)', icon: '🌤️', desc: "มีเมฆบางส่วน" };
+        } else if (code >= 45 && code <= 48) { // Fog
+            theme = { bg: 'linear-gradient(180deg, #e2e8f0 0%, #cbd5e1 100%)', color: '#475569', shadow: 'rgba(148,163,184,0.3)', icon: '🌫️', desc: "มีหมอก" };
+        } else if ((code >= 51 && code <= 67) || (code >= 80 && code <= 82)) { // Rain
+            theme = { bg: 'linear-gradient(180deg, #e0e7ff 0%, #c7d2fe 100%)', color: '#312e81', shadow: 'rgba(165,180,252,0.3)', icon: '🌧️', desc: "ฝนตก" };
+        } else if (code >= 71 && code <= 77) { // Snow
+            theme = { bg: 'linear-gradient(180deg, #f0f9ff 0%, #e0f2fe 100%)', color: '#0369a1', shadow: 'rgba(125,211,252,0.3)', icon: '❄️', desc: "หิมะตก" };
+        } else { // Storm
+            theme = { bg: 'linear-gradient(180deg, #94a3b8 0%, #64748b 100%)', color: '#f8fafc', shadow: 'rgba(100,116,139,0.3)', icon: '⛈️', desc: "พายุฟ้าคะนอง" };
+        }
+    }
+    return theme;
+}
+
+function updateWeatherView() {
+    if (!currentWeatherData) return;
+    const container = document.getElementById('weatherViewContainer');
+
+    const { temp, feelsLike, code, uv, sunrise: sunriseIso, sunset: sunsetIso } = currentWeatherData;
+    
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const now = new Date();
+    const sunriseTime = new Date(sunriseIso);
+    const sunsetTime = new Date(sunsetIso);
+    const isNight = now < sunriseTime || now > sunsetTime;
+    
+    const wt = getWeatherTheme(code, isNight, isDark);
+
+    // Reset card styling for views 0 and 1
+    const card = container.closest('.weather-card');
+    if (card) {
+        card.style.background = wt.bg;
+        card.style.color = wt.color;
+        card.style.boxShadow = `0 8px 16px ${wt.shadow}`;
+        const chevrons = card.querySelectorAll('.icon-btn');
+        chevrons.forEach(btn => {
+            btn.style.color = wt.color;
+            btn.style.background = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)';
+        });
+    }
+    
+    if (currentWeatherViewIndex === 0) {
+        // Current Weather
+        container.innerHTML = `
+            <div class="weather-current-layout">
+                <div class="weather-current-icon">${wt.icon}</div>
+                <div class="weather-current-details">
+                    <div style="font-size: 2.2rem; font-weight: 700; line-height: 1; text-shadow: 0 2px 4px rgba(0,0,0,0.1);">${Math.round(temp)}°</div>
+                    <div style="font-size: 10px; background: ${isDark ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.3)'}; padding: 2px 8px; border-radius: 12px; font-weight: 600; margin-bottom: 2px; backdrop-filter: blur(4px);">Feels like: ${Math.round(feelsLike)}°</div>
+                    <div style="font-size: 13px; font-weight: 500; text-shadow: 0 1px 2px rgba(0,0,0,0.1);">${wt.desc}</div>
+                </div>
+            </div>
+        `;
+    } else if (currentWeatherViewIndex === 1) {
+        // UV Index
+        let uvDesc = 'Low';
+        if (uv >= 3 && uv <= 5) uvDesc = 'Moderate';
+        else if (uv >= 6 && uv <= 7) uvDesc = 'High';
+        else if (uv >= 8 && uv <= 10) uvDesc = 'Very High';
+        else if (uv >= 11) uvDesc = 'Extreme';
+        
+        container.innerHTML = `
+            <div class="weather-current-layout">
+                <div class="weather-current-icon" style="font-size: 2.5rem; margin-top: 4px; margin-bottom: 4px;">🕶️</div>
+                <div class="weather-current-details">
+                    <div style="font-size: 11px; font-weight: 600; opacity: 0.9; text-transform: uppercase; letter-spacing: 1px;">UV Index</div>
+                    <div style="font-size: 2.4rem; font-weight: 700; line-height: 1; text-shadow: 0 2px 4px rgba(0,0,0,0.1);">${uv.toFixed(1)}</div>
+                    <div style="font-size: 13px; font-weight: 500; text-shadow: 0 1px 2px rgba(0,0,0,0.1); margin-top: 2px;">${uvDesc}</div>
+                </div>
+            </div>
+        `;
+    } else if (currentWeatherViewIndex === 2) {
+        // Sunrise / Sunset
+        const sunrise = sunriseTime.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        const sunset = sunsetTime.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        
+        if (card) {
+            card.style.background = isDark ? '#1e293b' : '#f5f7fa';
+            card.style.color = isDark ? '#f8fafc' : '#333';
+            card.style.boxShadow = isDark ? '0 8px 16px rgba(0,0,0,0.4)' : '0 8px 16px rgba(0,0,0,0.05)';
+            const chevrons = card.querySelectorAll('.icon-btn');
+            chevrons.forEach(btn => {
+                btn.style.color = isDark ? '#cbd5e1' : '#4a5568';
+                btn.style.background = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
+            });
+        }
+        
+        container.innerHTML = `
+            <div style="position: absolute; top: 10px; left: 10px; display: flex; align-items: center; gap: 6px; z-index: 2;">
+                <i data-lucide="sunrise" style="width: 14px; height: 14px; color: ${isDark ? '#94a3b8' : '#4a5568'};"></i>
+                <span style="font-size: 11px; font-weight: 600; color: ${isDark ? '#94a3b8' : '#4a5568'};">Sunrise and sunset</span>
+            </div>
+            
+            <svg viewBox="0 0 100 100" preserveAspectRatio="none" style="width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 0; border-radius: var(--radius-lg);">
+                <rect x="0" y="60" width="100" height="40" fill="${isDark ? '#334155' : '#c5d0e6'}" />
+                <path d="M 5 60 Q 50 10 95 60 Z" fill="${isDark ? '#0f172a' : '#4b6587'}" />
+                <line x1="0" y1="60" x2="100" y2="60" stroke="${isDark ? '#475569' : '#cbd5e1'}" stroke-width="0.5" />
+            </svg>
+            
+            <div style="position: absolute; top: 35%; left: 35%; transform: translate(-50%, -50%); z-index: 1;">
+                <div style="width: 12px; height: 12px; background: #f59e0b; border: 1.5px solid ${isDark ? '#1e293b' : '#1f2937'}; border-radius: 50%;"></div>
+            </div>
+            
+            <div style="position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%); z-index: 2; display: flex; flex-direction: column; gap: 4px; white-space: nowrap;">
+                <div style="display: flex; align-items: center; gap: 6px;">
+                    <i data-lucide="sun" style="width: 14px; height: 14px; color: ${isDark ? '#94a3b8' : '#4a5568'};"></i>
+                    <span style="font-size: 12px; font-weight: 600; color: ${isDark ? '#e2e8f0' : '#1f2937'};">${sunrise}</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 6px;">
+                    <i data-lucide="sunset" style="width: 14px; height: 14px; color: ${isDark ? '#94a3b8' : '#4a5568'};"></i>
+                    <span style="font-size: 12px; font-weight: 600; color: ${isDark ? '#e2e8f0' : '#1f2937'};">${sunset}</span>
+                </div>
+            </div>
+        `;
+        if (window.lucide) lucide.createIcons();
+    }
+}
+
+function prevWeatherView() {
+    currentWeatherViewIndex = (currentWeatherViewIndex - 1 + 3) % 3;
+    updateWeatherView();
+}
+
+function nextWeatherView() {
+    currentWeatherViewIndex = (currentWeatherViewIndex + 1) % 3;
+    updateWeatherView();
+}
+
+async function fetchWeatherData(lat, lon, locationName) {
     const locEl = document.getElementById('weatherLocation');
-    const iconEl = document.getElementById('weatherIcon');
-    
-    if(!tempEl) return;
-    
-    // Default to Bangkok
-    let lat = 13.75;
-    let lon = 100.5167;
-    locEl.innerText = "กรุงเทพมหานคร";
+    if (locEl) locEl.innerText = locationName || "กรุงเทพมหานคร";
     
     try {
-        const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code`);
+        const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,apparent_temperature,weather_code,uv_index&daily=sunrise,sunset&timezone=auto`);
         const data = await res.json();
         
         const temp = data.current.temperature_2m;
+        const feelsLike = data.current.apparent_temperature;
         const code = data.current.weather_code;
+        const uv = data.current.uv_index;
+        const sunrise = data.daily.sunrise[0];
+        const sunset = data.daily.sunset[0];
         
-        tempEl.innerText = `${Math.round(temp)}°C`;
-        
-        // Map WMO weather codes to descriptions and lucide icons
-        let desc = "Clear";
-        let icon = "sun";
-        
-        if (code === 0) { desc = "ท้องฟ้าแจ่มใส"; icon = "sun"; }
-        else if (code >= 1 && code <= 3) { desc = "มีเมฆบางส่วน"; icon = "cloud-sun"; }
-        else if (code >= 45 && code <= 48) { desc = "มีหมอก"; icon = "cloud-fog"; }
-        else if (code >= 51 && code <= 67) { desc = "ฝนตก"; icon = "cloud-rain"; }
-        else if (code >= 71 && code <= 77) { desc = "หิมะตก"; icon = "snowflake"; }
-        else if (code >= 80 && code <= 82) { desc = "ฝนตกหนัก"; icon = "cloud-rain"; }
-        else if (code >= 95 && code <= 99) { desc = "พายุฝนฟ้าคะนอง"; icon = "cloud-lightning"; }
-        else { desc = "มีเมฆมาก"; icon = "cloud"; }
-        
-        descEl.innerText = desc;
-        iconEl.innerHTML = `<i data-lucide="${icon}"></i>`;
-        
-        if (window.lucide) {
-            window.lucide.createIcons();
-        }
+        currentWeatherData = { temp, feelsLike, code, uv, sunrise, sunset };
+        updateWeatherView();
     } catch (err) {
         console.error("Weather error:", err);
+    }
+}
+
+async function loadWeather() {
+    const container = document.getElementById('weatherViewContainer');
+    if(!container) return;
+    
+    // Default to Bangkok
+    let defaultLat = 13.75;
+    let defaultLon = 100.5167;
+    
+    try {
+        const ipRes = await fetch("https://ipwho.is/");
+        const ipData = await ipRes.json();
+        if (ipData.success) {
+            const lat = ipData.latitude;
+            const lon = ipData.longitude;
+            const locationName = ipData.city || "ตำแหน่งปัจจุบัน";
+            await fetchWeatherData(lat, lon, locationName);
+        } else {
+            await fetchWeatherData(defaultLat, defaultLon, "กรุงเทพมหานคร");
+        }
+    } catch (e) {
+        console.warn("IP Geolocation failed, using default.");
+        fetchWeatherData(defaultLat, defaultLon, "กรุงเทพมหานคร");
     }
 }
 
@@ -3887,6 +4051,7 @@ function setInsightBackground(url) {
         card.classList.remove('bg-gradient-insight');
         // Save to local storage
         localStorage.setItem('insightBg', url);
+        if (window.syncDataToCloud) window.syncDataToCloud('insightBg', url, true);
     }
 }
 
@@ -3896,12 +4061,18 @@ function removeInsightBackground() {
         card.style.backgroundImage = '';
         card.classList.add('bg-gradient-insight');
         localStorage.removeItem('insightBg');
+        if (window.syncDataToCloud) window.syncDataToCloud('insightBg', null, true);
     }
 }
 
 function handleInsightBgUpload(event) {
     const file = event.target.files[0];
     if (file) {
+        // Ensure file is not too large for Firestore (max 1MB, so limit to 800KB)
+        if (file.size > 800000) {
+            alert('File is too large! Please choose an image under 800KB.');
+            return;
+        }
         const reader = new FileReader();
         reader.onload = function(e) {
             const dataUrl = e.target.result;
@@ -3912,9 +4083,15 @@ function handleInsightBgUpload(event) {
 }
 
 // Load saved insight background on init
-document.addEventListener('DOMContentLoaded', () => {
+(function initInsightBg() {
     const savedBg = localStorage.getItem('insightBg');
     if (savedBg) {
-        setInsightBackground(savedBg);
+        const card = document.querySelector('.insight-card');
+        if (card) {
+            card.style.backgroundImage = `linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.6)), url('${savedBg}')`;
+            card.style.backgroundSize = 'cover';
+            card.style.backgroundPosition = 'center';
+            card.classList.remove('bg-gradient-insight');
+        }
     }
-});
+})();
