@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Tesla Telemetry Mode</title>
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Leaflet Map & Routing -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" />
+    <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
+    <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+    <!-- Styles -->
+    <link rel="stylesheet" href="style.css">
+
+    <style>
+        :root {
+            --tesla-bg: #000000;
+            --tesla-text: #ffffff;
+            --tesla-muted: #888888;
+            --tesla-accent: #3399ff;
+            --tesla-green: #00ffcc;
+            --tesla-red: #ff3366;
+            --tesla-panel-bg: rgba(0, 0, 0, 0.4);
+            --tesla-panel-border: rgba(255, 255, 255, 0.1);
+            --tesla-gradient-start: rgba(10, 10, 10, 1);
+            --tesla-gradient-mid: rgba(10, 10, 10, 0.85);
+            --tesla-gradient-mid2: rgba(10, 10, 10, 0.3);
+            --tesla-gradient-end: rgba(10, 10, 10, 0);
+            --tesla-text-shadow: rgba(255, 255, 255, 0.8);
+            --tesla-btn-bg: rgba(255, 255, 255, 0.1);
+            --tesla-btn-border: rgba(255, 255, 255, 0.2);
+            --tesla-btn-text: #ffffff;
+            --tesla-tire-bg: rgba(255, 255, 255, 0.1);
+            --tesla-tire-border: rgba(255, 255, 255, 0.3);
+            --map-brightness: 0.8;
+            --map-contrast: 1.2;
+            --chassis-stroke: #333333;
+        }
+
+        body.light-mode {
+            --tesla-bg: #f5f5f5;
+            --tesla-text: #111111;
+            --tesla-muted: #666666;
+            --tesla-accent: #0066cc;
+            --tesla-green: #00b386;
+            --tesla-red: #e60039;
+            --tesla-panel-bg: rgba(255, 255, 255, 0.6);
+            --tesla-panel-border: rgba(0, 0, 0, 0.1);
+            --tesla-gradient-start: rgba(245, 245, 245, 1);
+            --tesla-gradient-mid: rgba(245, 245, 245, 0.85);
+            --tesla-gradient-mid2: rgba(245, 245, 245, 0.3);
+            --tesla-gradient-end: rgba(245, 245, 245, 0);
+            --tesla-text-shadow: rgba(0, 0, 0, 0.5);
+            --tesla-btn-bg: rgba(0, 0, 0, 0.05);
+            --tesla-btn-border: rgba(0, 0, 0, 0.1);
+            --tesla-btn-text: #111111;
+            --tesla-tire-bg: rgba(0, 0, 0, 0.05);
+            --tesla-tire-border: rgba(0, 0, 0, 0.2);
+            --map-brightness: 1.0;
+            --map-contrast: 1.0;
+            --chassis-stroke: #cccccc;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            background-color: var(--tesla-bg);
+            color: var(--tesla-text);
+            font-family: 'Outfit', sans-serif;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        /* Full Screen Map */
+        .map-section {
+            position: absolute;
+            inset: 0;
+            z-index: 1;
+            background: var(--tesla-bg);
+        }
+
+        .map-iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            filter: brightness(var(--map-brightness)) contrast(var(--map-contrast));
+            transition: filter 0.3s ease;
+        }
+
+        /* Telemetry Overlay (Left Side) */
+        .telemetry-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 500px;
+            height: 100vh;
+            z-index: 10;
+            background: linear-gradient(90deg, var(--tesla-gradient-start) 0%, var(--tesla-gradient-mid) 40%, var(--tesla-gradient-mid2) 70%, var(--tesla-gradient-end) 100%);
+            display: flex;
+            flex-direction: column;
+            padding: 32px 32px 32px 32px;
+            box-sizing: border-box;
+            pointer-events: none;
+            transition: background 0.3s ease;
+        }
+        
+        .telemetry-overlay > * {
+            pointer-events: auto;
+        }
+
+        /* Top Nav */
+        .tesla-top-nav {
+            margin-bottom: 24px;
+            display: flex;
+            gap: 12px;
+        }
+
+        .tesla-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--tesla-btn-bg);
+            border: 1px solid var(--tesla-btn-border);
+            color: var(--tesla-btn-text);
+            padding: 8px 16px;
+            border-radius: 30px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+            text-decoration: none;
+            transition: all 0.2s ease;
+        }
+
+        .tesla-btn:hover {
+            filter: brightness(1.2);
+        }
+
+        /* PRND Gear Selector */
+        .gear-selector {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            font-size: 28px;
+            font-weight: 800;
+            color: var(--tesla-muted);
+            margin-bottom: 20px;
+        }
+
+        .gear-item {
+            transition: all 0.3s ease;
+        }
+
+        .gear-item[data-gear="P"].active { color: #ffffff; text-shadow: 0 0 15px var(--tesla-text-shadow); transform: scale(1.2); }
+        .gear-item[data-gear="R"].active { color: var(--tesla-red); text-shadow: 0 0 15px var(--tesla-red); transform: scale(1.2); }
+        .gear-item[data-gear="N"].active { color: var(--tesla-green); text-shadow: 0 0 15px var(--tesla-green); transform: scale(1.2); }
+        .gear-item[data-gear="D"].active { color: var(--tesla-accent); text-shadow: 0 0 15px var(--tesla-accent); transform: scale(1.2); }
+
+        /* Speedometer */
+        .speed-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .speed-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 100px;
+            font-weight: 700;
+            line-height: 1;
+            color: var(--tesla-text);
+        }
+
+        .speed-unit {
+            font-size: 16px;
+            font-weight: 500;
+            color: var(--tesla-muted);
+            letter-spacing: 2px;
+        }
+
+        /* Grid for Telemetry Widgets */
+        .telemetry-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .widget {
+            background: var(--tesla-panel-bg);
+            border: 1px solid var(--tesla-panel-border);
+            border-radius: 16px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+
+        .widget-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--tesla-muted);
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .widget-value {
+            font-size: 24px;
+            font-weight: 600;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Battery specific */
+        .battery-bar-container {
+            height: 6px;
+            background: var(--tesla-panel-border);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 4px;
+        }
+
+        .battery-bar {
+            height: 100%;
+            background: var(--tesla-green);
+            width: 80%;
+            transition: width 1s ease;
+        }
+
+        /* Tire Pressure Graphic */
+        .tire-pressure-widget {
+            background: var(--tesla-panel-bg);
+            border: 1px solid var(--tesla-panel-border);
+            border-radius: 16px;
+            padding: 16px;
+            backdrop-filter: blur(10px);
+            margin-bottom: auto;
+            transition: all 0.3s ease;
+        }
+
+        .car-chassis {
+            position: relative;
+            width: 120px;
+            height: 200px;
+            margin: 10px auto 0;
+            /* Will be set dynamically by JS to handle stroke color */
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center center;
+        }
+
+        .tire {
+            position: absolute;
+            background: var(--tesla-tire-bg);
+            border: 1px solid var(--tesla-tire-border);
+            border-radius: 8px;
+            padding: 4px 8px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            transition: all 0.3s ease;
+        }
+
+        .tire.low-pressure {
+            color: var(--tesla-red);
+            border-color: var(--tesla-red);
+            background: rgba(255, 51, 102, 0.1);
+        }
+
+        .tire-unit {
+            font-size: 10px;
+            color: var(--tesla-muted);
+        }
+
+        .tire-fl { top: 20px; left: -20px; }
+        .tire-fr { top: 20px; right: -20px; }
+        .tire-rl { bottom: 20px; left: -20px; }
+        .tire-rr { bottom: 20px; right: -20px; }
+
+        /* Mascot Container */
+        .mascot-container {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            width: 120px;
+            height: 120px;
+            pointer-events: none;
+            animation: mascotFloat 4s ease-in-out infinite;
+        }
+
+        @keyframes mascotFloat {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .mascot-img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            filter: drop-shadow(0 10px 20px rgba(0,0,0,0.5));
+        }
+
+        /* GPS Status */
+        .gps-status-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            color: var(--tesla-muted);
+            border-top: 1px solid var(--tesla-panel-border);
+            padding-top: 16px;
+            margin-top: 16px;
+        }
+
+        /* Leaflet Routing Machine overrides */
+        .leaflet-routing-container {
+            background-color: var(--tesla-panel-bg) !important;
+            color: var(--tesla-text) !important;
+            border: 1px solid var(--tesla-panel-border) !important;
+            backdrop-filter: blur(10px);
+            border-radius: 12px !important;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3) !important;
+            margin-right: 20px !important;
+            margin-top: 20px !important;
+            font-family: 'Outfit', sans-serif !important;
+        }
+
+        .leaflet-routing-container input {
+            background-color: var(--tesla-btn-bg) !important;
+            color: var(--tesla-text) !important;
+            border: 1px solid var(--tesla-btn-border) !important;
+            border-radius: 6px;
+        }
+
+        /* Prevent editing the start location */
+        .leaflet-routing-geocoders div:first-child input {
+            pointer-events: none;
+            color: var(--tesla-green) !important;
+            font-weight: 600;
+        }
+        
+        .leaflet-routing-geocoders div:first-child .leaflet-routing-remove-waypoint {
+            display: none;
+        }
+
+        .leaflet-routing-alt {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .leaflet-routing-alt::-webkit-scrollbar {
+            width: 6px;
+        }
+        .leaflet-routing-alt::-webkit-scrollbar-thumb {
+            background: var(--tesla-btn-border);
+            border-radius: 3px;
+        }
+
+    </style>
+</head>
+<body>
+
+    <!-- Full Screen Map -->
+    <div class="map-section">
+        <div id="map" class="map-iframe"></div>
+        
+        <div id="mapOverlay" style="position: absolute; inset: 0; background: var(--tesla-bg); display: flex; align-items: center; justify-content: center; z-index: 10;">
+            <div style="text-align: center; color: var(--tesla-muted);">
+                <i data-lucide="map-pin" style="width: 48px; height: 48px; margin-bottom: 16px; opacity: 0.5;"></i>
+                <h2>GPS Navigation</h2>
+                <p>Acquiring satellite lock...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Telemetry Overlay -->
+    <div class="telemetry-overlay">
+        
+        <div class="tesla-top-nav">
+            <a href="index.html" class="tesla-btn">
+                <i data-lucide="arrow-left"></i> Exit
+            </a>
+            <button class="tesla-btn" id="themeToggleBtn" onclick="toggleTeslaTheme()">
+                <i data-lucide="sun"></i> Light Mode
+            </button>
+            <button class="tesla-btn" id="startNavBtn" style="display: none; background: var(--tesla-green); color: #000; border-color: var(--tesla-green);" onclick="startNavigation()">
+                <i data-lucide="navigation"></i> Start
+            </button>
+            <button class="tesla-btn" id="cancelNavBtn" style="display: none; background: var(--tesla-red); color: white; border-color: var(--tesla-red);" onclick="cancelNavigation()">
+                <i data-lucide="x-circle"></i> Cancel
+            </button>
+        </div>
+
+        <!-- PRND Gear -->
+        <div class="gear-selector" id="gearSelector">
+            <div class="gear-item active" data-gear="P">P</div>
+            <div class="gear-item" data-gear="R">R</div>
+            <div class="gear-item" data-gear="N">N</div>
+            <div class="gear-item" data-gear="D">D</div>
+        </div>
+        
+        <!-- Speedometer -->
+        <div class="speed-container">
+            <div id="speedValue" class="speed-value">0</div>
+            <div class="speed-unit">KM/H</div>
+        </div>
+
+        <!-- Telemetry Grid -->
+        <div class="telemetry-grid">
+            <!-- Battery -->
+            <div class="widget">
+                <div class="widget-header">
+                    <i data-lucide="battery-charging" style="color: var(--tesla-green);"></i> Battery
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: baseline;">
+                    <div id="batteryValue" class="widget-value" style="font-size: 20px;">80%</div>
+                    <div id="batteryRange" style="color: var(--tesla-muted); font-size: 12px;">340 km</div>
+                </div>
+                <div class="battery-bar-container">
+                    <div id="batteryBar" class="battery-bar"></div>
+                </div>
+            </div>
+
+            <!-- Temperature -->
+            <div class="widget">
+                <div class="widget-header">
+                    <i data-lucide="thermometer"></i> Ext. Temp
+                </div>
+                <div id="tempValue" class="widget-value" style="font-size: 20px;">32°C</div>
+            </div>
+
+            <!-- kWh Used -->
+            <div class="widget">
+                <div class="widget-header">
+                    <i data-lucide="zap"></i> Trip Energy
+                </div>
+                <div id="kwhValue" class="widget-value" style="font-size: 20px;">0.0 kWh</div>
+            </div>
+
+            <!-- Mileage -->
+            <div class="widget">
+                <div class="widget-header">
+                    <i data-lucide="gauge"></i> Odometer
+                </div>
+                <div id="mileageValue" class="widget-value" style="font-size: 20px;">12,450 km</div>
+            </div>
+        </div>
+
+        <!-- Tire Pressure Graphic -->
+        <div class="tire-pressure-widget">
+            <div class="widget-header" style="justify-content: center; margin-bottom: 8px;">
+                <i data-lucide="box"></i> Tire Pressure
+            </div>
+            <div class="car-chassis" id="carChassisImg">
+                <div id="tireFL" class="tire tire-fl">42<span class="tire-unit">PSI</span></div>
+                <div id="tireFR" class="tire tire-fr">42<span class="tire-unit">PSI</span></div>
+                <div id="tireRL" class="tire tire-rl">42<span class="tire-unit">PSI</span></div>
+                <div id="tireRR" class="tire tire-rr">42<span class="tire-unit">PSI</span></div>
+            </div>
+        </div>
+
+        <!-- GPS & Clock -->
+        <div class="gps-status-bar">
+            <div style="display: flex; align-items: center; gap: 6px;">
+                <i data-lucide="navigation" style="width: 14px; height: 14px;"></i>
+                <span id="gpsStatus">Locating...</span>
+            </div>
+            <div id="clockTime" style="font-weight: 600; font-family: 'JetBrains Mono', monospace; font-size: 14px;">00:00</div>
+        </div>
+
+    </div>
+
+    <!-- Mascot (Floating over map) -->
+    <div class="mascot-container">
+        <img src="assets/kuunnui_calm.png" alt="Kuunnui Mascot" class="mascot-img">
+    </div>
+
+    <script src="tesla.js"></script>
+    <script>
+        lucide.createIcons();
+        
+        // Setup initial car chassis stroke based on theme
+        function updateChassisGraphic() {
+            const isLight = document.body.classList.contains('light-mode');
+            const color = isLight ? '%23cccccc' : '%23333333';
+            const svg = `data:image/svg+xml;utf8,<svg viewBox="0 0 100 200" xmlns="http://www.w3.org/2000/svg"><rect x="20" y="10" width="60" height="180" rx="20" fill="none" stroke="${color}" stroke-width="2"/><line x1="20" y1="50" x2="80" y2="50" stroke="${color}" stroke-width="2"/><line x1="20" y1="150" x2="80" y2="150" stroke="${color}" stroke-width="2"/></svg>`;
+            document.getElementById('carChassisImg').style.backgroundImage = `url('${svg}')`;
+        }
+        
+        // Setup Theme Toggle
+        function toggleTeslaTheme() {
+            const body = document.body;
+            body.classList.toggle('light-mode');
+            const isLight = body.classList.contains('light-mode');
+            
+            localStorage.setItem('teslaTheme', isLight ? 'light' : 'dark');
+            
+            const btn = document.getElementById('themeToggleBtn');
+            btn.innerHTML = isLight ? '<i data-lucide="moon"></i> Dark Mode' : '<i data-lucide="sun"></i> Light Mode';
+            
+            // Dispatch event so Leaflet can change maps
+            window.dispatchEvent(new CustomEvent('teslaThemeChanged', { detail: { isLight } }));
+            
+            updateChassisGraphic();
+            lucide.createIcons();
+        }
+
+        // Load saved theme
+        if (localStorage.getItem('teslaTheme') === 'light') {
+            document.body.classList.add('light-mode');
+            document.getElementById('themeToggleBtn').innerHTML = '<i data-lucide="moon"></i> Dark Mode';
+        }
+        updateChassisGraphic();
+    </script>
+</body>
+</html>

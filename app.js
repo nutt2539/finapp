@@ -807,11 +807,11 @@ function displayRandomInsight() {
         
         // Setup new mascot image (fallback to calm if focus doesn't exist etc, though we only have warning, happy, excited, idea, calm)
         if (mascotImg && mascotContainer) {
-            let moodImg = 'mascot_calm.png';
-            if (newInsight.mood === 'warning') moodImg = 'mascot_warning.png';
-            else if (newInsight.mood === 'happy') moodImg = 'mascot_happy.png';
-            else if (newInsight.mood === 'excited') moodImg = 'mascot_excited.png';
-            else if (newInsight.mood === 'idea' || newInsight.mood === 'focus') moodImg = 'mascot_idea.png';
+            let moodImg = 'kuunnui_calm.png';
+            if (newInsight.mood === 'warning') moodImg = 'kuunnui_warning.png';
+            else if (newInsight.mood === 'happy') moodImg = 'kuunnui_happy.png';
+            else if (newInsight.mood === 'excited') moodImg = 'kuunnui_excited.png';
+            else if (newInsight.mood === 'idea' || newInsight.mood === 'focus') moodImg = 'kuunnui_idea.png';
             
             mascotImg.src = `assets/${moodImg}`;
             
@@ -4161,3 +4161,228 @@ function handleInsightBgUpload(event) {
         }
     }
 })();
+
+// ==========================================
+// AI Assisted Features (Gemini Integration)
+// ==========================================
+
+function toggleKuunNuiChat() {
+    const chatWindow = document.getElementById('kuunnuiChatWindow');
+    if (chatWindow.style.display === 'none' || chatWindow.style.display === '') {
+        chatWindow.style.display = 'flex';
+        setTimeout(() => document.getElementById('aiChatInput').focus(), 100);
+    } else {
+        chatWindow.style.display = 'none';
+    }
+}
+
+async function handleAiChatSubmit(event) {
+    event.preventDefault();
+    const inputEl = document.getElementById('aiChatInput');
+    const msg = inputEl.value.trim();
+    if (!msg) return;
+
+    const apiKey = localStorage.getItem('geminiApiKey');
+    if (!apiKey) {
+        alert('Please enter your Gemini API Key in Profile & Settings to use the AI Advisor.');
+        return;
+    }
+
+    const chatWindow = document.getElementById('aiChatWindow');
+    
+    // Add user message
+    const userBubble = document.createElement('div');
+    userBubble.style.cssText = 'align-self: flex-end; background: var(--accent-primary); color: white; padding: 10px 15px; border-radius: 12px; max-width: 85%;';
+    userBubble.innerText = msg;
+    chatWindow.appendChild(userBubble);
+    
+    inputEl.value = '';
+    
+    // Add loading bubble
+    const loadingBubble = document.createElement('div');
+    loadingBubble.style.cssText = 'align-self: flex-start; background: var(--glass-bg); padding: 10px 15px; border-radius: 12px; border: 1px solid var(--border-color); max-width: 85%; color: var(--text-primary);';
+    loadingBubble.innerHTML = '<strong>KuunNui 🐾:</strong> <span>Thinking...</span>';
+    chatWindow.appendChild(loadingBubble);
+    chatWindow.scrollTop = chatWindow.scrollHeight;
+
+    try {
+        // Prepare context
+        const currentBalance = transactions.reduce((sum, t) => sum + (t.type === 'income' ? parseFloat(t.amount) : -parseFloat(t.amount)), 0);
+        
+        const filteredTx = getFilteredTransactions();
+        const periodIncome = filteredTx.filter(t => t.type === 'income').reduce((sum, t) => sum + parseFloat(t.amount), 0);
+        const periodExpense = filteredTx.filter(t => t.type === 'expense').reduce((sum, t) => sum + parseFloat(t.amount), 0);
+        const periodLabel = activeTab === 'monthly' ? selectedMonth : selectedYear;
+        
+        const recentTx = filteredTx.slice(0, 15).map(t => `${t.date}: ${t.name} (${t.type}) - ฿${t.amount}`).join('\n');
+        
+        const prompt = `You are KuunNui (คุณนุ้ย), a friendly, smart, and slightly sassy black cat who is an expert personal financial advisor. 
+The user is asking you a question about their finances.
+Context:
+- Current overall balance: ฿${currentBalance} (CRITICAL: DO NOT mention this balance unless the user explicitly asks about it!)
+- Currently viewing period: ${periodLabel}
+- Income in this period: ฿${periodIncome}
+- Expense in this period: ฿${periodExpense}
+- Recent transactions in this period:
+${recentTx}
+
+User's question: "${msg}"
+
+Instructions:
+1. Answer primarily in Thai (ภาษาไทย).
+2. Be extremely concise and direct. Do NOT ramble or give unnecessary long explanations (ไม่ต้องเวิ่นเว้อ). Keep it to 1-2 short sentences.
+3. DO NOT mention the total balance or summarize the money unless explicitly requested by the user.
+4. Stay in character (use emojis like 🐾, 😺, 🐟).`;
+
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                contents: [{ parts: [{ text: prompt }] }]
+            })
+        });
+
+        const data = await response.json();
+        if (data.error) throw new Error(data.error.message);
+        
+        let reply = data.candidates[0].content.parts[0].text;
+        
+        loadingBubble.innerHTML = `<strong>KuunNui 🐾:</strong> ${reply.replace(/\n/g, '<br>')}`;
+    } catch (err) {
+        console.error("AI Chat Error:", err);
+        loadingBubble.innerHTML = `<strong style="color:var(--tesla-red);">Error:</strong> ${err.message}`;
+    }
+    chatWindow.scrollTop = chatWindow.scrollHeight;
+}
+
+async function runPredictiveBudget() {
+    const apiKey = localStorage.getItem('geminiApiKey');
+    if (!apiKey) {
+        alert('Please enter your Gemini API Key in Profile & Settings.');
+        return;
+    }
+
+    const btn = document.getElementById('predictiveBtn');
+    const resultDiv = document.getElementById('predictiveResult');
+    
+    btn.innerHTML = 'Analyzing...';
+    btn.disabled = true;
+    resultDiv.style.display = 'block';
+    resultDiv.innerHTML = 'Crunching your numbers... 🤖';
+
+    try {
+        // Gather data
+        const currentMonth = new Date().toISOString().substring(0,7);
+        const monthTx = transactions.filter(t => t.date.startsWith(currentMonth));
+        const income = monthTx.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
+        const expense = monthTx.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
+        const dataPayload = monthTx.map(t => `${t.date}: ${t.name} - ฿${t.amount}`).join('\n');
+
+        const prompt = `Act as an expert financial forecaster.
+Current Month: ${currentMonth}
+Total Income this month so far: ฿${income}
+Total Expenses this month so far: ฿${expense}
+Transaction History:
+${dataPayload}
+
+Task:
+1. Predict the total expenses by the end of the month based on the burn rate.
+2. Tell the user if they will have a surplus or deficit.
+3. Suggest 1-2 specific categories/items they should cut back on based on the history.
+
+Format as a short, readable HTML snippet (using <ul>, <strong>, etc.). Do not wrap in markdown \`\`\`html tags, just return raw HTML. Be friendly and concise.`;
+
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                contents: [{ parts: [{ text: prompt }] }]
+            })
+        });
+
+        const data = await response.json();
+        if (data.error) throw new Error(data.error.message);
+        
+        let htmlContent = data.candidates[0].content.parts[0].text;
+        htmlContent = htmlContent.replace(/```html/g, '').replace(/```/g, '').trim();
+        
+        resultDiv.innerHTML = htmlContent;
+    } catch (err) {
+        console.error("Predictive Error:", err);
+        resultDiv.innerHTML = `<span style="color:var(--tesla-red);">Failed to generate forecast: ${err.message}</span>`;
+    } finally {
+        btn.innerHTML = '<i data-lucide="wand-2"></i> Run Forecast';
+        btn.disabled = false;
+        lucide.createIcons();
+    }
+}
+
+async function scanSubscriptions() {
+    const apiKey = localStorage.getItem('geminiApiKey');
+    if (!apiKey) {
+        alert('Please enter your Gemini API Key in Profile & Settings.');
+        return;
+    }
+
+    const btn = document.getElementById('scanSubBtn');
+    const resultDiv = document.getElementById('subscriptionResult');
+    const tbody = document.getElementById('aiSubTableBody');
+    
+    btn.innerHTML = 'Scanning...';
+    btn.disabled = true;
+
+    try {
+        const txData = transactions.filter(t => t.type === 'expense').map(t => `${t.date}: ${t.name} - ฿${t.amount}`).join('\n');
+        
+        const prompt = `Analyze this list of expense transactions. Identify recurring subscriptions (e.g., Netflix, Spotify, Gym, Cloud storage, internet bills) or payments that look like they repeat monthly.
+Transactions:
+${txData}
+
+Return a JSON array of objects with this exact structure:
+[
+  { "name": "Netflix", "frequency": "Monthly", "estimatedCost": 419 },
+  ...
+]
+Only return the raw JSON array. Do not include markdown tags like \`\`\`json. If none found, return [].`;
+
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                contents: [{ parts: [{ text: prompt }] }]
+            })
+        });
+
+        const data = await response.json();
+        if (data.error) throw new Error(data.error.message);
+        
+        let jsonStr = data.candidates[0].content.parts[0].text;
+        jsonStr = jsonStr.replace(/```json/g, '').replace(/```/g, '').trim();
+        
+        const subs = JSON.parse(jsonStr);
+        
+        tbody.innerHTML = '';
+        if (subs.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;">No subscriptions detected.</td></tr>';
+        } else {
+            subs.forEach(s => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td><strong>${s.name}</strong></td>
+                        <td><span class="status-badge status-active" style="background:var(--primary-color); color:white;">${s.frequency}</span></td>
+                        <td>฿${parseFloat(s.estimatedCost).toLocaleString()}</td>
+                    </tr>
+                `;
+            });
+        }
+        
+        resultDiv.style.display = 'block';
+    } catch (err) {
+        console.error("Subscription Scan Error:", err);
+        alert(`Failed to scan subscriptions: ${err.message}`);
+    } finally {
+        btn.innerHTML = '<i data-lucide="scan"></i> Scan Transactions';
+        btn.disabled = false;
+        lucide.createIcons();
+    }
+}
