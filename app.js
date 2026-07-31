@@ -145,7 +145,7 @@ Storage.prototype.setItem = function(key, value) {
     }
     
     if (key.startsWith('firebase:')) return;
-    if (key === 'localCalendarEvents' || key === 'calendarStamps') return;
+    if (key === 'localCalendarEvents') return;
     
     if (window.isRestoringFromCloud) {
         if (window.showToast) window.showToast('DEBUG: ไม่ได้เซฟเพราะติดสถานะ กำลังโหลดจาก Cloud (อาจจะแคช)', 'error');
@@ -2117,8 +2117,10 @@ function getEventSources() {
 window.renderCalendar = function() {
     if(!calendarEl) return;
     
-    if (window.sharedCalendarEvents && window.sharedCalendarEvents.length > 0) {
-        localCalendarEvents = window.sharedCalendarEvents;
+    if (typeof window.sharedCalendarEvents !== 'undefined') {
+        const cloudIds = new Set(window.sharedCalendarEvents.map(e => e.id));
+        const localOnly = localCalendarEvents.filter(e => !cloudIds.has(e.id));
+        localCalendarEvents = [...window.sharedCalendarEvents, ...localOnly];
     }
     
     if (calendar) {
@@ -2229,6 +2231,9 @@ let activeStamp = null;
 
 function saveStamps() {
     localStorage.setItem('calendarStamps', JSON.stringify(calendarStamps));
+    if (window.syncDataToCloud) {
+        window.syncDataToCloud('calendarStamps', JSON.stringify(calendarStamps), false);
+    }
 }
 
 function saveLocalCalendarEvents() {
@@ -3327,23 +3332,23 @@ setTimeout(() => {
 });
 
 // Save deductions logic
-const btnSaveDeductions = document.getElementById('btnSaveDeductions');
-if (btnSaveDeductions) {
-    btnSaveDeductions.addEventListener('click', () => {
+const btnSaveDeductionsEl = document.getElementById('btnSaveDeductions');
+if (btnSaveDeductionsEl) {
+    btnSaveDeductionsEl.addEventListener('click', () => {
         const deductions = {};
         taxInputs.forEach(id => {
         deductions[id] = document.getElementById(id).value;
         });
         localStorage.setItem('taxDeductions', JSON.stringify(deductions));
         
-        const originalText = btnSaveDeductions.innerHTML;
-        btnSaveDeductions.innerHTML = '<i data-lucide="check"></i> Saved!';
-        btnSaveDeductions.classList.replace('btn-primary', 'btn-success');
+        const originalText = btnSaveDeductionsEl.innerHTML;
+        btnSaveDeductionsEl.innerHTML = '<i data-lucide="check"></i> Saved!';
+        btnSaveDeductionsEl.classList.replace('btn-primary', 'btn-success');
         if(typeof lucide !== 'undefined') lucide.createIcons();
         
         setTimeout(() => {
-            btnSaveDeductions.innerHTML = originalText;
-            btnSaveDeductions.classList.replace('btn-success', 'btn-primary');
+            btnSaveDeductionsEl.innerHTML = originalText;
+            btnSaveDeductionsEl.classList.replace('btn-success', 'btn-primary');
             if(typeof lucide !== 'undefined') lucide.createIcons();
         }, 2000);
     });

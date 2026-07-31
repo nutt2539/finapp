@@ -282,6 +282,11 @@ auth.onAuthStateChanged(async (user) => {
                 }
             }, (err) => {
                 console.error("Shared calendar snapshot error:", err);
+                if (window.showToast) {
+                    window.showToast("Firestore Error: " + err.message, "error");
+                } else {
+                    alert("Firestore Error: " + err.message);
+                }
             });
             
         } catch(err) {
