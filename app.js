@@ -2121,7 +2121,10 @@ window.renderCalendar = function() {
         localCalendarEvents = window.sharedCalendarEvents;
     }
     
-    if (!calendar) {
+    if (calendar) {
+        calendar.getEventSources().forEach(source => source.remove());
+        getEventSources().forEach(source => calendar.addEventSource(source));
+    } else {
         const viewModeSelect = document.getElementById('calendarViewMode');
         if (viewModeSelect && !viewModeSelect.hasListener) {
             viewModeSelect.hasListener = true;
@@ -2189,9 +2192,17 @@ window.renderCalendar = function() {
             eventClick: function(info) {
                 if (isStampMode) {
                     if (info.event.id && info.event.id.startsWith('evt_')) {
-                        localCalendarEvents = localCalendarEvents.filter(e => e.id !== info.event.id);
-                        saveLocalCalendarEvents();
-                        info.event.remove();
+                        const evtOwner = info.event.extendedProps.owner;
+                        const myEmail = (typeof currentUser !== 'undefined' && currentUser) ? currentUser.email : 'local';
+                        
+                        if (evtOwner === myEmail || !evtOwner || evtOwner === 'local' || myEmail === 'local') {
+                            localCalendarEvents = localCalendarEvents.filter(e => e.id !== info.event.id);
+                            saveLocalCalendarEvents();
+                            info.event.remove();
+                        } else {
+                            if(window.showToast) window.showToast("Cannot delete your partner's stamps", "warning");
+                            else alert("Cannot delete your partner's stamps");
+                        }
                     }
                 } else if (info.event.url) {
                     window.open(info.event.url, '_blank');
@@ -2200,10 +2211,6 @@ window.renderCalendar = function() {
             }
         });
         calendar.render();
-    } else {
-        // Update sources
-        calendar.getEventSources().forEach(source => source.remove());
-        getEventSources().forEach(source => calendar.addEventSource(source));
     }
 }
 

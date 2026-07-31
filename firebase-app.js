@@ -225,12 +225,50 @@ auth.onAuthStateChanged(async (user) => {
                     // Removed fallback autosave to save quota. Users must save manually where applicable.
                 }
                 
-            }, (err) => {
+        }, (err) => {
                 console.error("Snapshot error:", err);
                 document.getElementById('loginStatus').innerText = "Error syncing data: " + err.message;
             });
 
             // Listen for Shared Calendar updates
+            window.syncSharedCalendar = function(myEvents) {
+    if (!currentUser) return;
+    
+    // Only upload events that belong to the current user
+    const myEventsFiltered = myEvents.filter(e => e.owner === currentUser.email || !e.owner || e.owner === 'local').map(e => ({
+        ...e,
+        owner: currentUser.email
+    }));
+    
+    // Get current shared events
+    db.collection('shared').doc('life_schedule').get().then(doc => {
+        let allEvents = [];
+        if (doc.exists) {
+            allEvents = doc.data().events || [];
+        }
+        
+        // Remove all my old events
+        allEvents = allEvents.filter(e => e.owner !== currentUser.email);
+        
+        // Add my new events
+        allEvents = [...allEvents, ...myEventsFiltered];
+        
+        // Save back
+        db.collection('shared').doc('life_schedule').set({
+            events: allEvents,
+            lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+        }).then(() => {
+            console.log("Shared calendar synced successfully!");
+        }).catch(err => {
+            console.error("Error writing to shared calendar:", err);
+            window.showToast('Error syncing shared calendar: ' + err.message, 'error');
+        });
+    }).catch(err => {
+        console.error("Error reading shared calendar:", err);
+        window.showToast('Error reading shared calendar: ' + err.message, 'error');
+    });
+};
+
             db.collection('shared').doc('life_schedule').onSnapshot((doc) => {
                 if (doc.exists) {
                     const data = doc.data();

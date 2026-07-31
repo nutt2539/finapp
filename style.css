@@ -981,6 +981,19 @@ body {
     display: none;
 }
 
+.fc-day-today {
+    border: 2px solid #ff4d4d !important;
+    background-color: rgba(255, 77, 77, 0.05) !important;
+    box-shadow: 0 0 15px rgba(255, 77, 77, 0.2) inset, 0 0 10px rgba(255, 77, 77, 0.3) !important;
+    position: relative;
+    z-index: 1;
+}
+
+.fc-day-today .fc-daygrid-day-number {
+    color: #ff4d4d !important;
+    font-weight: 800 !important;
+}
+
 /* --- To-Do List Styles --- */
 .todo-section {
     padding: 24px;
