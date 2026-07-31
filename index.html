@@ -71,7 +71,7 @@
                     <i data-lucide="wallet"></i>
                     <span>FinDash</span>
                 </div>
-                <div class="app-version">v6.204 by Tu13u1E+</div>
+                <div class="app-version">v9.222 by Tu13u1E+</div>
             </div>
             <nav class="nav-menu">
                 <a href="#" class="nav-item active" data-view="view-dashboard"><i data-lucide="layout-dashboard"></i> Dashboard</a>
@@ -592,6 +592,13 @@
                 <div class="header-actions">
                     <span  class="autosave-indicator"></span>
                     
+                    <!-- Shared Calendar Toggle -->
+                    <select id="calendarViewMode" class="form-control" style="width: auto; height: 36px; padding: 0 12px; font-size: 14px; margin-right: 8px;">
+                        <option value="all">👫 ดูทั้งหมด (Shared)</option>
+                        <option value="mine">🙋‍♂️ ของฉัน</option>
+                        <option value="best">🙋‍♀️ ของแฟน (Best)</option>
+                    </select>
+
                     <!-- Calendar Links -->
                     <button class="btn btn-secondary btn-sm" id="manageCalendarLinksBtn">
                         <i data-lucide="link"></i> Calendar Links
@@ -924,54 +931,78 @@
         
         <!-- Main Content - AI Assisted -->
         <main class="main-content view-section" id="view-ai-assisted">
-            <header class="header">
+            <header class="header" style="margin-bottom: 24px;">
                 <div>
                     <h2><i data-lucide="sparkles" style="color: #8a2be2;"></i> AI Assisted Features</h2>
                     <p>Powered by Google Gemini to help you manage your finances smarter.</p>
+                    <div id="aiQuotaStatus" style="font-size: 14px; margin-top: 10px; display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 20px; background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-secondary); transition: all 0.3s ease;">
+                        <div class="status-indicator" style="width:8px; height:8px; border-radius:50%; background:#22c55e; box-shadow: 0 0 8px #22c55e;"></div>
+                        <span>AI Ready</span>
+                    </div>
                 </div>
             </header>
             
-            <div class="grid-2-col">
-                <!-- Chat / Advisor -->
-
-
-                <!-- Utilities -->
-                <div style="display: flex; flex-direction: column; gap: 20px;">
-                    <!-- Predictive Budgeting -->
-                    <div class="card">
-                        <h3><i data-lucide="line-chart"></i> Predictive Budgeting</h3>
-                        <p style="color: var(--text-secondary); margin-bottom: 15px; font-size: 14px;">Analyze your recent spending patterns to forecast your end-of-month balance and get recommendations.</p>
-                        <button type="button" class="btn btn-primary" onclick="runPredictiveBudget()" id="predictiveBtn">
-                            <i data-lucide="wand-2"></i> Run Forecast
-                        </button>
-                        <div id="predictiveResult" style="margin-top: 15px; padding: 15px; background: var(--bg-color); border: 1px solid var(--border-color); border-radius: var(--radius-md); display: none; line-height: 1.6;">
-                            <!-- Results go here -->
-                        </div>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 24px;">
+                <!-- Predictive Budgeting -->
+                <div class="card">
+                    <h3><i data-lucide="line-chart"></i> Predictive Budgeting</h3>
+                    <p style="color: var(--text-secondary); margin-bottom: 15px; font-size: 14px;">Analyze your recent spending patterns to forecast your end-of-month balance and get recommendations.</p>
+                    <button type="button" class="btn btn-primary" onclick="runPredictiveBudget()" id="predictiveBtn">
+                        <i data-lucide="wand-2"></i> Run Forecast
+                    </button>
+                    <div id="predictiveResult" style="margin-top: 15px; padding: 15px; background: var(--bg-color); border: 1px solid var(--border-color); border-radius: var(--radius-md); display: none; line-height: 1.6;">
+                        <!-- Results go here -->
                     </div>
+                </div>
 
-                    <!-- Smart Subscription Detector -->
-                    <div class="card">
-                        <h3><i data-lucide="search"></i> Smart Subscription Detector</h3>
-                        <p style="color: var(--text-secondary); margin-bottom: 15px; font-size: 14px;">Scan your transaction history to uncover recurring payments and hidden subscriptions.</p>
-                        <button type="button" class="btn btn-secondary" onclick="scanSubscriptions()" id="scanSubBtn">
-                            <i data-lucide="scan"></i> Scan Transactions
-                        </button>
-                        <div id="subscriptionResult" style="margin-top: 15px; display: none;">
-                            <div style="overflow-x: auto; background: var(--bg-color); border: 1px solid var(--border-color); border-radius: var(--radius-md);">
-                                <table class="transaction-table" style="margin: 0; width: 100%;">
-                                    <thead style="background: rgba(0,0,0,0.2);">
-                                        <tr>
-                                            <th>Name</th>
-                                            <th>Frequency</th>
-                                            <th>Est. Cost</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="aiSubTableBody">
-                                        <!-- Subscriptions -->
-                                    </tbody>
-                                </table>
-                            </div>
+                <!-- Financial Health Check -->
+                <div class="card">
+                    <h3><i data-lucide="heart-pulse"></i> Financial Health Check</h3>
+                    <p style="color: var(--text-secondary); margin-bottom: 15px; font-size: 14px;">Analyze your spending habits and get a monthly health score with personalized tips.</p>
+                    <button type="button" class="btn btn-primary" onclick="analyzeFinancialHealth()" id="healthBtn">
+                        <i data-lucide="activity"></i> Analyze Health
+                    </button>
+                    <div id="healthResult" style="margin-top: 15px; padding: 15px; background: var(--bg-color); border: 1px solid var(--border-color); border-radius: var(--radius-md); display: none;">
+                        <div style="text-align: center; margin-bottom: 15px;">
+                            <div id="healthGradeBadge" style="display: inline-block; width: 60px; height: 60px; line-height: 60px; border-radius: 50%; font-size: 28px; font-weight: bold; color: white;">A</div>
                         </div>
+                        <ul id="healthTipsList" style="padding-left: 20px; color: var(--text-primary); line-height: 1.6; font-size: 14px; margin: 0;">
+                            <!-- Tips go here -->
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Snap & Add -->
+                <div class="card">
+                    <h3><i data-lucide="camera"></i> Snap & Add</h3>
+                    <p style="color: var(--text-secondary); margin-bottom: 15px; font-size: 14px;">Upload or scan a receipt to automatically extract and log the transaction.</p>
+                    <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+                        <button type="button" class="btn btn-primary" onclick="document.getElementById('snapUpload').click()" id="snapUploadBtn">
+                            <i data-lucide="image"></i> Upload Slip
+                        </button>
+                        <button type="button" class="btn btn-primary" onclick="document.getElementById('snapCamera').click()" id="snapCameraBtn">
+                            <i data-lucide="camera"></i> Scan Camera
+                        </button>
+                    </div>
+                    <input type="file" id="snapUpload" accept="image/*" style="display: none;" onchange="snapAndAdd(this.files[0])">
+                    <input type="file" id="snapCamera" accept="image/*" capture="environment" style="display: none;" onchange="snapAndAdd(this.files[0])">
+                    <div id="snapResult" style="margin-top: 15px; padding: 15px; background: var(--bg-color); border: 1px solid var(--border-color); border-radius: var(--radius-md); display: none;">
+                        <!-- Snap Result Details -->
+                    </div>
+                </div>
+
+                <!-- Smart Goal Planner -->
+                <div class="card">
+                    <h3><i data-lucide="target"></i> Smart Goal Planner</h3>
+                    <p style="color: var(--text-secondary); margin-bottom: 15px; font-size: 14px;">Tell AI what you want to buy, and get a personalized savings plan.</p>
+                    <div class="form-group">
+                        <input type="text" id="goalInput" class="form-control" placeholder="e.g. Buy a PS5 for 18000 in 3 months">
+                    </div>
+                    <button type="button" class="btn btn-primary" style="margin-top: 10px;" onclick="planSmartGoal()" id="goalBtn">
+                        <i data-lucide="crosshair"></i> Create Plan
+                    </button>
+                    <div id="goalResult" style="margin-top: 15px; padding: 15px; background: var(--bg-color); border: 1px solid var(--border-color); border-radius: var(--radius-md); display: none; line-height: 1.6; font-size: 14px;">
+                        <!-- Goal Result Details -->
                     </div>
                 </div>
             </div>
@@ -1432,6 +1463,9 @@
                     <button class="btn btn-outline" style="grid-column: 1 / -1; justify-content: center; gap: 8px; height: 50px;" onclick="document.getElementById('profileSettingsModal').classList.remove('active'); document.getElementById('importBankModal').classList.add('active');">
                         <i data-lucide="building-2"></i> Import from Bank Statement
                     </button>
+                    <button class="btn btn-outline" style="grid-column: 1 / -1; justify-content: center; gap: 8px; height: 50px; color: #f43f5e; border-color: rgba(244, 63, 94, 0.2);" onclick="if(window.logoutUser) window.logoutUser();">
+                        <i data-lucide="log-out"></i> Logout
+                    </button>
                 </div>
             </div>
         </div>
@@ -1493,9 +1527,9 @@
             </div>
             <div class="modal-body" style="display: flex; flex-direction: column; gap: 16px;">
                 <p style="color: var(--text-secondary); font-size: 14px;">Enter your Google Gemini API Key to enable AI-powered features, such as smart bank statement analysis. Your key is saved locally in this browser.</p>
-                <div class="form-group" style="display: flex; gap: 12px; margin: 0;">
-                    <input type="password" id="geminiApiKeyInput" class="form-input" placeholder="AIzaSy..." style="flex: 1;">
-                    <button class="btn btn-primary" onclick="saveGeminiApiKey()">Save Key</button>
+                <div class="form-group" style="display: flex; flex-direction: column; gap: 12px; margin: 0;">
+                    <textarea id="geminiApiKeyInput" class="form-input" placeholder="AIzaSy... (You can enter multiple keys, one per line, to increase your rate limits!)" style="height: 100px; resize: vertical; font-family: monospace;"></textarea>
+                    <button class="btn btn-primary" onclick="saveGeminiApiKey()" style="align-self: flex-end;">Save Keys</button>
                 </div>
             </div>
         </div>
@@ -1661,7 +1695,13 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <!-- Firebase Auth Check Initializer -->
     <script>
-        lucide.createIcons();
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        } else {
+            document.addEventListener('DOMContentLoaded', () => {
+                if (typeof lucide !== 'undefined') lucide.createIcons();
+            });
+        }
     </script>
 </body>
 </html>

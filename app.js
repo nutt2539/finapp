@@ -1437,7 +1437,7 @@ navItems.forEach(item => {
             updateInvestmentView();
         } else if (targetView === 'view-schedule') {
             setTimeout(() => {
-                if(typeof renderCalendar === 'function') renderCalendar();
+                if(typeof window.renderCalendar === 'function') window.renderCalendar();
             }, 50);
         }
     });
@@ -1959,7 +1959,7 @@ if(calendarLinksForm) {
         
         // Re-render calendar if active
         if (document.getElementById('view-schedule').classList.contains('active')) {
-            renderCalendar();
+            window.renderCalendar();
         }
     });
 }
@@ -1991,28 +1991,69 @@ const thaiHolidays2026 = {
 function getEventSources() {
     const sources = [];
     const proxy = 'https://corsproxy.io/?';
-    if (calendarUrls.google) {
-        let url = calendarUrls.google.replace(/^webcal:\/\//i, 'https://');
-        url = url.startsWith('http') ? proxy + url : url;
-        sources.push({ url: url, format: 'ics', color: '#4285F4' });
-    }
-    if (calendarUrls.apple) {
-        let url = calendarUrls.apple.replace(/^webcal:\/\//i, 'https://');
-        url = url.startsWith('http') ? proxy + url : url;
-        sources.push({ url: url, format: 'ics', color: '#ff2d55' });
+    const viewMode = document.getElementById('calendarViewMode') ? document.getElementById('calendarViewMode').value : 'all';
+
+    if (viewMode !== 'best') {
+        if (calendarUrls.google) {
+            let url = calendarUrls.google.replace(/^webcal:\/\//i, 'https://');
+            url = url.startsWith('http') ? proxy + url : url;
+            sources.push({ url: url, format: 'ics', color: '#4285F4' });
+        }
+        if (calendarUrls.apple) {
+            let url = calendarUrls.apple.replace(/^webcal:\/\//i, 'https://');
+            url = url.startsWith('http') ? proxy + url : url;
+            sources.push({ url: url, format: 'ics', color: '#ff2d55' });
+        }
     }
     
+    const bestEmail = 'patchareebestpatcha@gmail.com';
+    let myEmail = (typeof currentUser !== 'undefined' && currentUser) ? currentUser.email : null;
+    
+    let filteredEvents = localCalendarEvents.filter(e => {
+        if (viewMode === 'all') return true;
+        if (viewMode === 'mine') return e.owner === myEmail || !e.owner || e.owner === 'local';
+        if (viewMode === 'best') return e.owner === bestEmail;
+        return true;
+    }).map(e => {
+        let modified = { ...e };
+        if (viewMode === 'all' && e.owner) {
+             if (e.owner === bestEmail) {
+                 modified.title = '👧 ' + modified.title;
+                 modified.borderColor = '#ff4d4d'; // Red border for Best
+             } else if (myEmail && e.owner === myEmail) {
+                 modified.title = '👦 ' + modified.title;
+                 modified.borderColor = '#4d79ff'; // Blue border for Nuttp
+             }
+        }
+        return modified;
+    });
+
     sources.push({
-        events: localCalendarEvents,
+        events: filteredEvents,
         id: 'local-events'
     });
     return sources;
 }
 
-function renderCalendar() {
+window.renderCalendar = function() {
     if(!calendarEl) return;
     
+    if (window.sharedCalendarEvents && window.sharedCalendarEvents.length > 0) {
+        localCalendarEvents = window.sharedCalendarEvents;
+    }
+    
     if (!calendar) {
+        const viewModeSelect = document.getElementById('calendarViewMode');
+        if (viewModeSelect && !viewModeSelect.hasListener) {
+            viewModeSelect.hasListener = true;
+            viewModeSelect.addEventListener('change', () => {
+                if (calendar) {
+                    calendar.getEventSources().forEach(source => source.remove());
+                    getEventSources().forEach(source => calendar.addEventSource(source));
+                }
+            });
+        }
+        
         calendar = new FullCalendar.Calendar(calendarEl, {
             initialView: 'dayGridMonth',
             headerToolbar: {
@@ -2055,7 +2096,8 @@ function renderCalendar() {
                         start: info.dateStr,
                         allDay: true,
                         backgroundColor: activeStamp.color,
-                        borderColor: activeStamp.color
+                        borderColor: activeStamp.color,
+                        owner: (typeof currentUser !== 'undefined' && currentUser) ? currentUser.email : 'local'
                     };
                     localCalendarEvents.push(newEvent);
                     saveLocalCalendarEvents();
@@ -2105,6 +2147,9 @@ function saveStamps() {
 
 function saveLocalCalendarEvents() {
     localStorage.setItem('localCalendarEvents', JSON.stringify(localCalendarEvents));
+    if (window.syncSharedCalendar) {
+        window.syncSharedCalendar(localCalendarEvents);
+    }
 }
 
 function renderStamps() {
@@ -3238,17 +3283,55 @@ function exportData() {
 }
 
 // --- AI Integrations ---
+let currentApiKeyIndex = 0;
+
+function getNextApiKey() {
+    let keys = localStorage.getItem('geminiApiKey');
+    if (!keys) return null;
+    
+    let keyArray = [];
+    if (keys.startsWith('[')) {
+        try {
+            keyArray = JSON.parse(keys);
+        } catch (e) {
+            keyArray = [keys];
+        }
+    } else {
+        keyArray = keys.split('\n').map(k => k.trim()).filter(k => k.length > 0);
+    }
+    
+    if (keyArray.length === 0) return null;
+    
+    const key = keyArray[currentApiKeyIndex % keyArray.length];
+    currentApiKeyIndex++;
+    return key;
+}
+
 function saveGeminiApiKey() {
-    const key = document.getElementById('geminiApiKeyInput').value;
-    localStorage.setItem('geminiApiKey', key);
-    alert('Gemini API Key saved locally!');
+    const rawVal = document.getElementById('geminiApiKeyInput').value;
+    const keys = rawVal.split('\n').map(k => k.trim()).filter(k => k.length > 0);
+    if (keys.length === 0) {
+        localStorage.removeItem('geminiApiKey');
+        alert('API Key(s) removed.');
+    } else {
+        localStorage.setItem('geminiApiKey', JSON.stringify(keys));
+        alert('Gemini API Key(s) saved locally!');
+    }
 }
 
 setTimeout(() => {
-    const savedKey = localStorage.getItem('geminiApiKey');
+    let keys = localStorage.getItem('geminiApiKey');
     const inputEl = document.getElementById('geminiApiKeyInput');
-    if (savedKey && inputEl) {
-        inputEl.value = savedKey;
+    if (keys && inputEl) {
+        if (keys.startsWith('[')) {
+            try {
+                inputEl.value = JSON.parse(keys).join('\n');
+            } catch (e) {
+                inputEl.value = keys;
+            }
+        } else {
+            inputEl.value = keys;
+        }
     }
 }, 100);
 
@@ -3258,7 +3341,7 @@ async function handleBankCsvImport(event) {
     const files = Array.from(event.target.files);
     if (files.length === 0) return;
 
-    const apiKey = localStorage.getItem('geminiApiKey');
+    const apiKey = getNextApiKey();
     if (!apiKey) {
         alert('Please enter your Gemini API Key in the AI Integrations section first.');
         event.target.value = '';
@@ -4182,7 +4265,7 @@ async function handleAiChatSubmit(event) {
     const msg = inputEl.value.trim();
     if (!msg) return;
 
-    const apiKey = localStorage.getItem('geminiApiKey');
+    const apiKey = getNextApiKey();
     if (!apiKey) {
         alert('Please enter your Gemini API Key in Profile & Settings to use the AI Advisor.');
         return;
@@ -4249,6 +4332,7 @@ Instructions:
         
         loadingBubble.innerHTML = `<strong>KuunNui 🐾:</strong> ${reply.replace(/\n/g, '<br>')}`;
     } catch (err) {
+        handleAIError(err);
         console.error("AI Chat Error:", err);
         loadingBubble.innerHTML = `<strong style="color:var(--tesla-red);">Error:</strong> ${err.message}`;
     }
@@ -4256,7 +4340,7 @@ Instructions:
 }
 
 async function runPredictiveBudget() {
-    const apiKey = localStorage.getItem('geminiApiKey');
+    const apiKey = getNextApiKey();
     if (!apiKey) {
         alert('Please enter your Gemini API Key in Profile & Settings.');
         return;
@@ -4287,27 +4371,85 @@ ${dataPayload}
 
 Task:
 1. Predict the total expenses by the end of the month based on the burn rate.
-2. Tell the user if they will have a surplus or deficit.
+2. Determine if the user will have a surplus or deficit, and by how much.
 3. Suggest 1-2 specific categories/items they should cut back on based on the history.
+4. Provide a friendly explanation.
 
-Format as a short, readable HTML snippet (using <ul>, <strong>, etc.). Do not wrap in markdown \`\`\`html tags, just return raw HTML. Be friendly and concise.`;
+Return a JSON object with this exact structure:
+{
+    "predictedExpenses": number,
+    "surplusDeficitAmount": number,
+    "status": "surplus" | "deficit",
+    "recommendations": ["string", "string"],
+    "explanation": "string"
+}`;
 
         const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                contents: [{ parts: [{ text: prompt }] }]
+                contents: [{ parts: [{ text: prompt }] }],
+                generationConfig: { responseMimeType: "application/json" }
             })
         });
 
         const data = await response.json();
         if (data.error) throw new Error(data.error.message);
         
-        let htmlContent = data.candidates[0].content.parts[0].text;
-        htmlContent = htmlContent.replace(/```html/g, '').replace(/```/g, '').trim();
-        
-        resultDiv.innerHTML = htmlContent;
+        let jsonRaw = data.candidates[0].content.parts[0].text;
+        jsonRaw = jsonRaw.replace(/```json/i, '').replace(/```/g, '').trim();
+        const json = JSON.parse(jsonRaw);
+
+        const currentExpPercent = income > 0 ? Math.min(100, (expense / income) * 100) : 0;
+        const predictedExpPercent = income > 0 ? Math.min(100, (json.predictedExpenses / income) * 100) - currentExpPercent : 0;
+
+        const isSurplus = json.status === 'surplus';
+        const colorMain = isSurplus ? '#10b981' : '#ef4444';
+        const bgMain = isSurplus ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)';
+        const predictedColor = isSurplus ? '#f59e0b' : '#ef4444';
+
+        resultDiv.innerHTML = `
+            <div style="margin-bottom: 20px;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px;">
+                    <span style="color: var(--text-secondary);">Current Exp: <strong>฿${expense.toLocaleString()}</strong></span>
+                    <span style="color: var(--text-secondary);">Total Income: <strong>฿${income.toLocaleString()}</strong></span>
+                </div>
+                <div style="width: 100%; height: 16px; background: rgba(128,128,128,0.2); border-radius: 8px; position: relative; overflow: hidden; border: 1px solid var(--border-color);">
+                    <div style="position: absolute; left: 0; top: 0; height: 100%; width: ${currentExpPercent}%; background: var(--accent-primary); border-right: 1px solid rgba(0,0,0,0.2);"></div>
+                    <div style="position: absolute; left: ${currentExpPercent}%; top: 0; height: 100%; width: ${predictedExpPercent}%; background: ${predictedColor}; opacity: 0.8;"></div>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 13px; color: var(--text-secondary); margin-top: 8px;">
+                    <span><span style="display:inline-block; width:10px; height:10px; background:var(--accent-primary); border-radius:50%; margin-right:4px;"></span>Spent</span>
+                    <span><span style="display:inline-block; width:10px; height:10px; background:${predictedColor}; border-radius:50%; margin-right:4px;"></span>Predicted (+฿${(json.predictedExpenses - expense).toLocaleString()})</span>
+                </div>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+                <div style="background: var(--glass-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 15px; text-align: center;">
+                    <p style="margin: 0 0 5px 0; color: var(--text-secondary); font-size: 13px;">Predicted End-of-month</p>
+                    <h3 style="margin: 0; font-size: 20px;">฿${json.predictedExpenses.toLocaleString()}</h3>
+                </div>
+                <div style="background: ${bgMain}; border: 1px solid ${colorMain}; border-radius: 12px; padding: 15px; text-align: center;">
+                    <p style="margin: 0 0 5px 0; color: ${colorMain}; font-size: 13px;">${isSurplus ? 'Estimated Surplus' : 'Estimated Deficit'}</p>
+                    <h3 style="margin: 0; font-size: 20px; color: ${colorMain};">฿${json.surplusDeficitAmount.toLocaleString()}</h3>
+                </div>
+            </div>
+
+            <div style="background: rgba(138,43,226,0.05); padding: 16px; border-radius: 12px; border: 1px solid rgba(138,43,226,0.2);">
+                <p style="margin-bottom: 12px; line-height: 1.5; display: flex; gap: 10px;">
+                    <span style="font-size: 20px;">🤖</span>
+                    <span><strong>KuunNui 🐾:</strong> ${json.explanation}</span>
+                </p>
+                <div style="background: var(--bg-color); padding: 12px; border-radius: 8px; border: 1px solid var(--border-color);">
+                    <p style="margin: 0 0 8px 0; font-weight: bold; font-size: 13px; color: var(--text-secondary);"><i data-lucide="lightbulb" style="width: 14px; height: 14px; vertical-align: middle;"></i> AI Recommendations:</p>
+                    <ul style="margin: 0; padding-left: 20px; font-size: 14px; line-height: 1.6; color: var(--text-primary);">
+                        ${json.recommendations.map(r => `<li>${r}</li>`).join('')}
+                    </ul>
+                </div>
+            </div>
+        `;
     } catch (err) {
+        handleAIError(err);
         console.error("Predictive Error:", err);
         resultDiv.innerHTML = `<span style="color:var(--tesla-red);">Failed to generate forecast: ${err.message}</span>`;
     } finally {
@@ -4318,7 +4460,7 @@ Format as a short, readable HTML snippet (using <ul>, <strong>, etc.). Do not wr
 }
 
 async function scanSubscriptions() {
-    const apiKey = localStorage.getItem('geminiApiKey');
+    const apiKey = getNextApiKey();
     if (!apiKey) {
         alert('Please enter your Gemini API Key in Profile & Settings.');
         return;
@@ -4378,6 +4520,7 @@ Only return the raw JSON array. Do not include markdown tags like \`\`\`json. If
         
         resultDiv.style.display = 'block';
     } catch (err) {
+        handleAIError(err);
         console.error("Subscription Scan Error:", err);
         alert(`Failed to scan subscriptions: ${err.message}`);
     } finally {
@@ -4385,4 +4528,388 @@ Only return the raw JSON array. Do not include markdown tags like \`\`\`json. If
         btn.disabled = false;
         lucide.createIcons();
     }
+}
+
+async function handleSlipImage(file) {
+    if (!file) return;
+    const apiKey = getNextApiKey();
+    if (!apiKey) {
+        alert('Please enter your Gemini API Key in Profile & Settings.');
+        return;
+    }
+
+    const tbody = document.getElementById('aiSubTableBody');
+    const resultDiv = document.getElementById('subscriptionResult');
+    
+    tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;">Analyzing image... 🤖</td></tr>';
+    resultDiv.style.display = 'block';
+
+    try {
+        const base64Data = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result.split(',')[1]);
+            reader.onerror = error => reject(error);
+            reader.readAsDataURL(file);
+        });
+
+        const prompt = `Analyze this receipt or slip image. Determine if it is a recurring subscription (like Netflix, Spotify, gym) or just a normal expense.
+Extract the details and return a JSON object with this exact structure:
+{
+    "name": "string (Merchant name)",
+    "isSubscription": boolean,
+    "frequency": "string (e.g., Monthly, Yearly, None)",
+    "estimatedCost": number
+}
+Only return the raw JSON object, without markdown blocks.`;
+
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                contents: [{
+                    parts: [
+                        { text: prompt },
+                        { inline_data: { mime_type: file.type, data: base64Data } }
+                    ]
+                }],
+                generationConfig: { responseMimeType: "application/json" }
+            })
+        });
+
+        const data = await response.json();
+        if (data.error) throw new Error(data.error.message);
+        
+        let jsonStr = data.candidates[0].content.parts[0].text;
+        jsonStr = jsonStr.replace(/```json/i, '').replace(/```/g, '').trim();
+        
+        const s = JSON.parse(jsonStr);
+        
+        const badgeColor = s.isSubscription ? 'var(--primary-color)' : 'var(--text-secondary)';
+        
+        tbody.innerHTML = `
+            <tr>
+                <td><strong>${s.name}</strong><br><small style="color:var(--text-secondary);">${s.isSubscription ? 'Subscription Detected' : 'Normal Expense'}</small></td>
+                <td><span class="status-badge" style="background:${badgeColor}; color:white; padding: 4px 8px; border-radius: 4px; font-size: 12px;">${s.frequency || 'None'}</span></td>
+                <td>฿${parseFloat(s.estimatedCost).toLocaleString()}</td>
+            </tr>
+        `;
+
+    } catch (err) {
+        handleAIError(err);
+        console.error("Image Scan Error:", err);
+        tbody.innerHTML = `<tr><td colspan="3" style="text-align:center; color:var(--tesla-red);">Failed to scan image: ${err.message}</td></tr>`;
+    } finally {
+        document.getElementById('slipUpload').value = '';
+        document.getElementById('slipCamera').value = '';
+    }
+}
+
+// --- New AI Assisted Features ---
+
+async function analyzeFinancialHealth() {
+    const apiKey = getNextApiKey();
+    if (!apiKey) {
+        alert('Please enter your Gemini API Key in Profile & Settings.');
+        return;
+    }
+
+    const btn = document.getElementById('healthBtn');
+    const resultDiv = document.getElementById('healthResult');
+    const badge = document.getElementById('healthGradeBadge');
+    const tipsList = document.getElementById('healthTipsList');
+    
+    btn.innerHTML = 'Analyzing...';
+    btn.disabled = true;
+
+    try {
+        const txData = transactions.slice(0, 100).map(t => `${t.date}: ${t.name} (${t.type}) - ฿${t.amount} [${t.category}]`).join('\n');
+        
+        const prompt = `Analyze this list of recent transactions.
+Transactions:
+${txData}
+
+Evaluate the user's financial health based on spending habits, ratio of income to expense, and categorizations.
+Give them a grade from A (Excellent), B (Good), C (Needs Improvement), to D (Poor).
+Also provide exactly 3 concise, actionable tips in Thai to improve their financial health.
+
+Return a JSON object with this exact structure:
+{
+    "grade": "A" | "B" | "C" | "D",
+    "tips": ["Tip 1", "Tip 2", "Tip 3"]
+}
+Only return the raw JSON object, without markdown blocks.`;
+
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                contents: [{ parts: [{ text: prompt }] }],
+                generationConfig: { responseMimeType: "application/json" }
+            })
+        });
+
+        const data = await response.json();
+        if (data.error) throw new Error(data.error.message);
+        
+        let jsonStr = data.candidates[0].content.parts[0].text;
+        jsonStr = jsonStr.replace(/```json/i, '').replace(/```/g, '').trim();
+        const result = JSON.parse(jsonStr);
+        
+        badge.textContent = result.grade;
+        let color = '#4caf50'; // A
+        if (result.grade === 'B') color = '#2196f3';
+        else if (result.grade === 'C') color = '#ff9800';
+        else if (result.grade === 'D') color = '#f44336';
+        badge.style.backgroundColor = color;
+
+        tipsList.innerHTML = result.tips.map(t => `<li style="margin-bottom: 8px;">${t}</li>`).join('');
+        resultDiv.style.display = 'block';
+
+    } catch (err) {
+        handleAIError(err);
+        console.error("Health Scan Error:", err);
+        alert(`Failed to analyze health: ${err.message}`);
+    } finally {
+        btn.innerHTML = '<i data-lucide="activity"></i> Analyze Health';
+        btn.disabled = false;
+        lucide.createIcons();
+    }
+}
+
+let tempSnapTransaction = null;
+
+async function snapAndAdd(file) {
+    if (!file) return;
+    const apiKey = getNextApiKey();
+    if (!apiKey) {
+        alert('Please enter your Gemini API Key in Profile & Settings.');
+        return;
+    }
+
+    const resultDiv = document.getElementById('snapResult');
+    resultDiv.innerHTML = '<div style="text-align:center;">Extracting details... 🤖</div>';
+    resultDiv.style.display = 'block';
+
+    try {
+        const base64Data = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result.split(',')[1]);
+            reader.onerror = error => reject(error);
+            reader.readAsDataURL(file);
+        });
+
+        const prompt = `Analyze this receipt or slip image. Extract the transaction details to create an expense record.
+Categories available: Food & Dining, Transportation, Shopping, Entertainment, Bills & Utilities, Healthcare, Travel, Education, Personal Care, Others.
+Pick the most appropriate category.
+
+Return a JSON object with this exact structure:
+{
+    "name": "string (Merchant name or short description)",
+    "amount": number,
+    "category": "string (from the list above)",
+    "date": "YYYY-MM-DD (extract from slip, or just return empty string if not found)"
+}
+Only return the raw JSON object, without markdown blocks.`;
+
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                contents: [{
+                    parts: [
+                        { text: prompt },
+                        { inline_data: { mime_type: file.type, data: base64Data } }
+                    ]
+                }],
+                generationConfig: { responseMimeType: "application/json" }
+            })
+        });
+
+        const data = await response.json();
+        if (data.error) throw new Error(data.error.message);
+        
+        let jsonStr = data.candidates[0].content.parts[0].text;
+        jsonStr = jsonStr.replace(/```json/i, '').replace(/```/g, '').trim();
+        
+        const extracted = JSON.parse(jsonStr);
+        if (!extracted.date) {
+            extracted.date = new Date().toISOString().split('T')[0];
+        }
+
+        tempSnapTransaction = {
+            id: Date.now().toString(),
+            name: extracted.name,
+            amount: extracted.amount,
+            category: extracted.category,
+            date: extracted.date,
+            type: 'expense'
+        };
+
+        resultDiv.innerHTML = `
+            <div style="margin-bottom: 10px;"><strong>Extracted Details:</strong></div>
+            <table style="width: 100%; font-size: 14px; margin-bottom: 15px;">
+                <tr><td style="color:var(--text-secondary); width:80px; padding:4px 0;">Name</td><td style="padding:4px 0;">${extracted.name}</td></tr>
+                <tr><td style="color:var(--text-secondary); padding:4px 0;">Amount</td><td style="color:var(--tesla-red); font-weight:bold; padding:4px 0;">฿${parseFloat(extracted.amount).toLocaleString()}</td></tr>
+                <tr><td style="color:var(--text-secondary); padding:4px 0;">Category</td><td style="padding:4px 0;">${extracted.category}</td></tr>
+                <tr><td style="color:var(--text-secondary); padding:4px 0;">Date</td><td style="padding:4px 0;">${extracted.date}</td></tr>
+            </table>
+            <button class="btn btn-primary" style="width: 100%;" onclick="confirmSnapAndAdd()">
+                <i data-lucide="check"></i> Add to Ledger
+            </button>
+        `;
+        lucide.createIcons();
+    } catch (err) {
+        handleAIError(err);
+        console.error("Snap Error:", err);
+        resultDiv.innerHTML = `<div style="text-align:center; color:var(--tesla-red);">Failed to read slip: ${err.message}</div>`;
+    } finally {
+        document.getElementById('snapUpload').value = '';
+        document.getElementById('snapCamera').value = '';
+    }
+}
+
+function confirmSnapAndAdd() {
+    if (!tempSnapTransaction) return;
+    transactions.push(tempSnapTransaction);
+    saveData();
+    updateUI();
+    const resultDiv = document.getElementById('snapResult');
+    resultDiv.innerHTML = '<div style="text-align:center; color:var(--primary-color);"><i data-lucide="check-circle" style="width:32px;height:32px;margin-bottom:10px;"></i><br>Added to Ledger successfully!</div>';
+    lucide.createIcons();
+    tempSnapTransaction = null;
+}
+
+async function planSmartGoal() {
+    const apiKey = getNextApiKey();
+    if (!apiKey) {
+        alert('Please enter your Gemini API Key in Profile & Settings.');
+        return;
+    }
+
+    const input = document.getElementById('goalInput').value.trim();
+    if (!input) {
+        alert('Please enter a goal first.');
+        return;
+    }
+
+    const btn = document.getElementById('goalBtn');
+    const resultDiv = document.getElementById('goalResult');
+    
+    btn.innerHTML = 'Planning...';
+    btn.disabled = true;
+
+    try {
+        let totalIncome = 0;
+        let totalExpense = 0;
+        transactions.forEach(t => {
+            if (t.type === 'income') totalIncome += t.amount;
+            else if (t.type === 'expense') totalExpense += t.amount;
+        });
+        const currentSavings = totalIncome - totalExpense;
+
+        const prompt = `User's Goal: "${input}"
+User's current monthly savings capacity (Income - Expense): ฿${currentSavings.toLocaleString()}
+
+Analyze the user's goal. Determine how much they need to save weekly or monthly to achieve it.
+Also evaluate if this goal is feasible based on their current savings capacity.
+Provide a short, personalized advice (in Thai).
+
+Return a JSON object with this exact structure:
+{
+    "weeklySaving": number (estimated amount to save per week),
+    "feasible": boolean,
+    "advice": "string (Thai advice, 2-3 sentences max)"
+}
+Only return the raw JSON object, without markdown blocks.`;
+
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                contents: [{ parts: [{ text: prompt }] }],
+                generationConfig: { responseMimeType: "application/json" }
+            })
+        });
+
+        const data = await response.json();
+        if (data.error) throw new Error(data.error.message);
+        
+        let jsonStr = data.candidates[0].content.parts[0].text;
+        jsonStr = jsonStr.replace(/```json/i, '').replace(/```/g, '').trim();
+        const result = JSON.parse(jsonStr);
+        
+        const badgeColor = result.feasible ? 'var(--primary-color)' : 'var(--tesla-red)';
+        
+        resultDiv.innerHTML = `
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px;">
+                <strong>Weekly Target:</strong>
+                <span style="color: ${badgeColor}; font-size: 20px; font-weight: bold;">฿${parseFloat(result.weeklySaving).toLocaleString()}</span>
+            </div>
+            <div style="margin-bottom: 10px;">
+                <span class="status-badge" style="background:${badgeColor}; color:white; padding: 4px 8px; border-radius: 4px; font-size: 12px;">
+                    ${result.feasible ? 'Feasible / เป็นไปได้' : 'High Risk / ท้าทาย'}
+                </span>
+            </div>
+            <div style="color: var(--text-secondary);">${result.advice}</div>
+        `;
+        resultDiv.style.display = 'block';
+
+    } catch (err) {
+        handleAIError(err);
+        console.error("Goal Planner Error:", err);
+        alert(`Failed to plan goal: ${err.message}`);
+    } finally {
+        btn.innerHTML = '<i data-lucide="crosshair"></i> Create Plan';
+        btn.disabled = false;
+        lucide.createIcons();
+    }
+}
+
+let aiQuotaInterval = null;
+let aiQuotaReadyTime = parseInt(localStorage.getItem('aiQuotaReadyTime') || '0', 10);
+
+function handleAIError(err) {
+    const msg = err.message || err.toString();
+    const match = msg.match(/retry in ([\d\.]+)s/);
+    if (match) {
+        // Add a 5 second buffer to ensure the API bucket has fully reset
+        const waitSeconds = Math.ceil(parseFloat(match[1])) + 5;
+        const readyTime = Date.now() + (waitSeconds * 1000);
+        
+        // Update if the new ready time is further in the future
+        if (readyTime > aiQuotaReadyTime) {
+            aiQuotaReadyTime = readyTime;
+            localStorage.setItem('aiQuotaReadyTime', readyTime.toString());
+            startQuotaCountdown();
+        }
+    }
+}
+
+function startQuotaCountdown() {
+    const statusEl = document.getElementById('aiQuotaStatus');
+    if (!statusEl) return;
+    
+    if (aiQuotaInterval) clearInterval(aiQuotaInterval);
+    
+    const updateUI = () => {
+        const remaining = Math.ceil((aiQuotaReadyTime - Date.now()) / 1000);
+        
+        if (remaining <= 0) {
+            statusEl.innerHTML = `<div class="status-indicator" style="width:8px; height:8px; border-radius:50%; background:#22c55e; box-shadow: 0 0 8px #22c55e;"></div> <span style="color:var(--text-primary);">AI Ready</span>`;
+            statusEl.style.borderColor = 'var(--border-color)';
+            clearInterval(aiQuotaInterval);
+        } else {
+            statusEl.innerHTML = `<i data-lucide="timer" style="width:14px;height:14px;color:#f59e0b;"></i> <span style="color:#f59e0b; font-weight:500;">Quota Limit! Retry in ${remaining}s</span>`;
+            statusEl.style.borderColor = '#f59e0b';
+            if (window.lucide) lucide.createIcons();
+        }
+    };
+    
+    updateUI();
+    aiQuotaInterval = setInterval(updateUI, 1000);
+}
+
+// Check on load
+if (aiQuotaReadyTime > Date.now()) {
+    startQuotaCountdown();
 }

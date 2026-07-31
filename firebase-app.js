@@ -25,6 +25,21 @@ db.enablePersistence()
 
 let currentUser = null;
 let isAppLoaded = false;
+window.sharedCalendarEvents = [];
+
+window.syncSharedCalendar = async function(eventsArray) {
+    if (!currentUser) return false;
+    try {
+        await db.collection('shared').doc('life_schedule').set({
+            events: eventsArray,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        return true;
+    } catch (e) {
+        console.error("Shared calendar sync error:", e);
+        return false;
+    }
+};
 
 window.isSavingToCloud = false;
 window.syncDataToCloud = async function(specificKey = null, specificValue = null, showToast = false) {
@@ -121,15 +136,14 @@ document.getElementById('btnGoogleSignIn').addEventListener('click', () => {
 // Auth State Observer
 auth.onAuthStateChanged(async (user) => {
     if (user) {
-        // Restrict access to a specific email
-        const allowedEmails = ["tu13u1e@gmail.com"];
+        // Restrict access to authorized users only (Security Measure)
+        const allowedEmails = ["tu13u1e@gmail.com", "patchareebestpatcha@gmail.com"];
         if (!allowedEmails.includes(user.email)) {
             auth.signOut();
-            document.getElementById('loginStatus').innerText = "Access Denied: This email is not authorized.";
-            alert("คุณไม่ได้รับอนุญาตให้ใช้งานแอปพลิเคชันนี้ (Access Denied)");
+            document.getElementById('loginStatus').innerText = "Access Denied: Unauthorized email.";
+            alert("⚠️ เข้าสู่ระบบไม่ได้: ระบบถูกล็อคให้ใช้งานได้เฉพาะคุณนัทและคุณเบสเท่านั้นครับ (Security Mode)");
             return;
         }
-
         currentUser = user;
         document.getElementById('loginStatus').innerText = "Loading your data securely...";
         
@@ -164,9 +178,16 @@ auth.onAuthStateChanged(async (user) => {
                             // Check if change came from server (not a local unacknowledged write)
                             if (!change.doc.metadata.hasPendingWrites) {
                                 const val = change.doc.data().value;
-                                if (val && localStorage.getItem(change.doc.id) !== val) {
-                                    localStorage.setItem(change.doc.id, val);
-                                    hasRemoteChanges = true;
+                                if (val !== null && val !== undefined) {
+                                    if (localStorage.getItem(change.doc.id) !== val) {
+                                        localStorage.setItem(change.doc.id, val);
+                                        hasRemoteChanges = true;
+                                    }
+                                } else {
+                                    if (localStorage.getItem(change.doc.id) !== null) {
+                                        localStorage.removeItem(change.doc.id);
+                                        hasRemoteChanges = true;
+                                    }
                                 }
                             }
                         });
@@ -208,6 +229,22 @@ auth.onAuthStateChanged(async (user) => {
                 console.error("Snapshot error:", err);
                 document.getElementById('loginStatus').innerText = "Error syncing data: " + err.message;
             });
+
+            // Listen for Shared Calendar updates
+            db.collection('shared').doc('life_schedule').onSnapshot((doc) => {
+                if (doc.exists) {
+                    const data = doc.data();
+                    if (data && data.events) {
+                        window.sharedCalendarEvents = data.events;
+                        // Tell app.js to re-render calendar if it's loaded
+                        if (window.renderCalendar && document.getElementById('view-schedule').classList.contains('active')) {
+                            window.renderCalendar();
+                        }
+                    }
+                }
+            }, (err) => {
+                console.error("Shared calendar snapshot error:", err);
+            });
             
         } catch(err) {
             document.getElementById('loginStatus').innerText = "Error loading data: " + err.message;
@@ -221,3 +258,28 @@ auth.onAuthStateChanged(async (user) => {
         document.getElementById('loginStatus').innerText = "";
     }
 });
+
+// Logout function for Multi-User Support
+window.logoutUser = async function() {
+    if (confirm("ออกจากระบบใช่ไหมครับ? (ข้อมูลในเครื่องจะถูกล้างชั่วคราว เพื่อความปลอดภัยเวลาคนอื่นมาล็อกอินต่อ ข้อมูลของคุณยังอยู่ในคลาวด์ปลอดภัยครับ)")) {
+        try {
+            // Save API key pool so they don't have to re-enter it
+            const apiKeyPool = localStorage.getItem('gemini_api_key_pool');
+            
+            // Sign out from Firebase
+            await auth.signOut();
+            
+            // Clear local storage to prevent data bleeding to the next user
+            localStorage.clear();
+            
+            // Restore API key pool
+            if (apiKeyPool) localStorage.setItem('gemini_api_key_pool', apiKeyPool);
+            
+            // Reload page to start fresh and show login screen
+            window.location.reload();
+        } catch (err) {
+            console.error("Logout error:", err);
+            alert("Error logging out: " + err.message);
+        }
+    }
+};
