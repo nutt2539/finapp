@@ -57,6 +57,85 @@ window.updateAutosaveUI = function(status = 'saved', showToastPopup = false) {
     }
 };
 
+// --- User Profile Logic ---
+let userProfile = JSON.parse(localStorage.getItem('userProfile')) || {
+    name: '',
+    role: '',
+    avatarBase64: ''
+};
+
+function saveProfile() {
+    localStorage.setItem('userProfile', JSON.stringify(userProfile));
+}
+
+function renderProfile() {
+    const nameStr = userProfile.name || 'Name Surname';
+    const roleStr = userProfile.role || 'Hobbies';
+    // SVG mystery avatar
+    const defaultAvatar = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="%2394a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>';
+    const avatarSrc = userProfile.avatarBase64 || defaultAvatar;
+
+    const sidebarName = document.getElementById('sidebarUserName');
+    const sidebarRole = document.getElementById('sidebarUserRole');
+    const sidebarAvatar = document.getElementById('sidebarAvatarImg');
+    
+    const profileNameInput = document.getElementById('profileNameInput');
+    const profileRoleInput = document.getElementById('profileRoleInput');
+    const modalAvatarImg = document.getElementById('modalAvatarImg');
+
+    if (sidebarName) sidebarName.textContent = nameStr;
+    if (sidebarRole) sidebarRole.textContent = roleStr;
+    if (sidebarAvatar) sidebarAvatar.src = avatarSrc;
+
+    if (profileNameInput && document.activeElement !== profileNameInput) profileNameInput.value = userProfile.name || '';
+    if (profileRoleInput && document.activeElement !== profileRoleInput) profileRoleInput.value = userProfile.role || '';
+    if (modalAvatarImg) modalAvatarImg.src = avatarSrc;
+}
+
+function initProfile() {
+    renderProfile();
+    
+    const profileNameInput = document.getElementById('profileNameInput');
+    const profileRoleInput = document.getElementById('profileRoleInput');
+    const avatarInput = document.getElementById('avatarInput');
+    const saveProfileBtn = document.getElementById('saveProfileBtn');
+
+    const showSaveBtn = () => {
+        if (saveProfileBtn) saveProfileBtn.style.display = 'flex';
+    };
+
+    if (profileNameInput) {
+        profileNameInput.addEventListener('input', showSaveBtn);
+    }
+
+    if (profileRoleInput) {
+        profileRoleInput.addEventListener('input', showSaveBtn);
+    }
+
+    if (saveProfileBtn) {
+        saveProfileBtn.addEventListener('click', () => {
+            if (profileNameInput) userProfile.name = profileNameInput.value.trim();
+            if (profileRoleInput) userProfile.role = profileRoleInput.value.trim();
+            saveProfile();
+            renderProfile();
+            saveProfileBtn.style.display = 'none';
+        });
+    }
+
+    if (avatarInput) {
+        avatarInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                userProfile.avatarBase64 = e.target.result;
+                saveProfile();
+                renderProfile();
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+}
 const originalSetItem = Storage.prototype.setItem;
 Storage.prototype.setItem = function(key, value) {
     try {
@@ -4913,3 +4992,4 @@ function startQuotaCountdown() {
 if (aiQuotaReadyTime > Date.now()) {
     startQuotaCountdown();
 }
+initProfile();
