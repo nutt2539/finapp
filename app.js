@@ -2099,7 +2099,8 @@ function getEventSources() {
              if (e.owner === bestEmail) {
                  modified.title = '👧 ' + modified.title;
                  modified.borderColor = '#ff4d4d'; // Red border for Best
-             } else if (myEmail && e.owner === myEmail) {
+             } else if (e.owner !== 'local') {
+                 // If it's not Best and not local, it must be Nuttp
                  modified.title = '👦 ' + modified.title;
                  modified.borderColor = '#4d79ff'; // Blue border for Nuttp
              }
@@ -2121,6 +2122,36 @@ window.renderCalendar = function() {
         const cloudIds = new Set(window.sharedCalendarEvents.map(e => e.id));
         const localOnly = localCalendarEvents.filter(e => !cloudIds.has(e.id));
         localCalendarEvents = [...window.sharedCalendarEvents, ...localOnly];
+    }
+    
+    // Auto-sync legacy or offline events to the cloud
+    let needsUpload = false;
+    let myEmail = (typeof currentUser !== 'undefined' && currentUser) ? currentUser.email : null;
+    if (myEmail) {
+        localCalendarEvents = localCalendarEvents.map(e => {
+            if (!e.owner || e.owner === 'local') {
+                needsUpload = true;
+                return { ...e, owner: myEmail };
+            }
+            return e;
+        });
+        
+        if (typeof window.sharedCalendarEvents !== 'undefined') {
+            const cloudIds = new Set(window.sharedCalendarEvents.map(e => e.id));
+            const myLocalEvents = localCalendarEvents.filter(e => e.owner === myEmail);
+            for (let e of myLocalEvents) {
+                if (!cloudIds.has(e.id)) {
+                    needsUpload = true;
+                    break;
+                }
+            }
+        }
+    }
+    
+    if (needsUpload && window.syncSharedCalendar) {
+        setTimeout(() => {
+            if (typeof saveLocalCalendarEvents === 'function') saveLocalCalendarEvents();
+        }, 1000);
     }
     
     if (calendar) {

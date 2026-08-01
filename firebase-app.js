@@ -27,19 +27,7 @@ let currentUser = null;
 let isAppLoaded = false;
 window.sharedCalendarEvents = [];
 
-window.syncSharedCalendar = async function(eventsArray) {
-    if (!currentUser) return false;
-    try {
-        await db.collection('shared').doc('life_schedule').set({
-            events: eventsArray,
-            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-        return true;
-    } catch (e) {
-        console.error("Shared calendar sync error:", e);
-        return false;
-    }
-};
+;
 
 window.isSavingToCloud = false;
 window.syncDataToCloud = async function(specificKey = null, specificValue = null, showToast = false) {
